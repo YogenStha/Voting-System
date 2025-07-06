@@ -1,34 +1,50 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    fullName: '',
-    studentId: '',
+    username: '',
+    student_id: '',
     address: '',
     email: '',
     year: '',
     faculty: '',
-    contact: '',
+    contact_number: '',
     password: '',
     confirmPassword: '',
   });
 
   const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((formData) => ({
+      ...formData,
       [e.target.name]: e.target.value,
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match.');
-      return;
+    console.log('Submit clicked, sending data:', formData);
+    try{
+      const response = await fetch('http://localhost:8000/api/register/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert("Registration successful!");
+    } else {
+      alert("Error: " + JSON.stringify(data));
     }
-    // TODO: Submit formData to server
-    console.log('Registration successful:', formData);
-    alert('Registered successfully!');
+
+    } catch (error) {
+      console.error("Error during registration:", error);
+      alert("An error occurred. Please try again. " + error.message);
+    }
+    
   };
 
   return (
@@ -41,10 +57,10 @@ const Register = () => {
             <label className="block text-gray-700 font-medium">Full Name</label>
             <input
               type="text"
-              name="fullName"
+              name="username"
               className="w-full mt-1 p-2 border rounded-xl"
               required
-              value={formData.fullName}
+              value={formData.username}
               onChange={handleChange}
             />
           </div>
@@ -53,10 +69,10 @@ const Register = () => {
             <label className="block text-gray-700 font-medium">Student ID</label>
             <input
               type="text"
-              name="studentId"
+              name="student_id"
               className="w-full mt-1 p-2 border rounded-xl"
               required
-              value={formData.studentId}
+              value={formData.student_id}
               onChange={handleChange}
             />
           </div>
@@ -122,9 +138,9 @@ const Register = () => {
             <label className="block text-gray-700 font-medium">Contact No</label>
             <input
               type="tel"
-              name="contact"
+              name="contact_number"
               className="w-full mt-1 p-2 border rounded-xl"
-              value={formData.contact}
+              value={formData.contact_number}
               onChange={handleChange}
             />
           </div>

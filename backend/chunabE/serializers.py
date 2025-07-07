@@ -1,3 +1,4 @@
+import threading
 from rest_framework import serializers
 from .models import User
 from utils import verify_mail
@@ -5,6 +6,9 @@ from django.contrib.auth.password_validation import validate_password
 from django.core.validators import validate_email as django_validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from utils.send_mail import send_Voter_ID_mail
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 class RegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -54,6 +58,14 @@ class RegisterSerializer(serializers.ModelSerializer):
         
         return value
     
+    def validate(self, data):
+        password = data.get('password')
+        confirm_password = data.get('confirmPassword')
+        if password != confirm_password:
+            raise serializers.ValidationError("Passwords do not match.")
+        validate_password(password)
+        return data
+    
     def validate_student_id(self, value):
         if value == "":
             raise serializers.ValidationError("This field is required.")
@@ -63,19 +75,45 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This student ID is already taken.")
 
         return value
-    
-    def validate(self, data):
-        password = data.get('password')
-        confirm_password = data.get('confirmPassword')
-        if password != confirm_password:
-            raise serializers.ValidationError("Passwords do not match.")
-        validate_password(password)
-        return data
-    
+
     def create(self, validated_data):
-        validated_data.pop('confirmPassword')  
-        user = User.objects.create_user(**validated_data)
-        user.save()
+        validated_data.pop('confirmPassword') 
+        private_pem = public_pem = None
+        user_data = validated_data.copy()
+        temp_user = User(**user_data)
+
+        def send_mail():
+            send_Voter_ID_mail(temp_user.email, temp_user.username, temp_user.voter_id)
         
-        send_Voter_ID_mail(user.email, user.username, user.voter_id)
+        def generate_key_pair():
+            nonlocal private_pem, public_pem
+            private_key =  rsa.generate_private_key(public_exponent=65537, 
+                                                    key_size=2048, 
+                                                    backend=default_backend()
+                                                    )
+            public_key = private_key.public_key()
+            
+            private_pem = private_key.private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            ).decode('utf-8')
+            
+            public_pem = public_key.public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo
+            ).decode('utf-8')
+        
+        t1 = threading.Thread(target=generate_key_pair)
+        t2 = threading.Thread(target=send_mail)
+        
+        t1.start()
+        t2.start()
+        
+        t1.join()
+        
+        user = User.objects.create_user(**validated_data, public_key=public_pem)
+        user.save()
+  
+        self.private_key = private_pem
         return user

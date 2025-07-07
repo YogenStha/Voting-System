@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-
+import { useNavigate } from 'react-router-dom';
 const Register = () => {
+  const navigate= useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     student_id: '',
@@ -22,7 +23,7 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Submit clicked, sending data:', formData);
+   // console.log('Submit clicked, sending data:', formData);
     try{
       const response = await fetch('http://localhost:8000/api/register/', {
       method: 'POST',
@@ -35,7 +36,7 @@ const Register = () => {
     const data = await response.json();
 
     if (response.ok) {
-      alert("Registration successful!");
+      navigate('/login');
     } else {
       alert("Error: " + JSON.stringify(data));
     }
@@ -45,6 +46,9 @@ const Register = () => {
       alert("An error occurred. Please try again. " + error.message);
     }
     
+    const private_key = data.private_key; // yo private key lai Indexed DB ma store gara hai
+    
+
   };
 
   return (

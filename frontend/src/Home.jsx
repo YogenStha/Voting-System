@@ -1,13 +1,14 @@
+import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
 
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
 function Home() {
   return (
     <>
-      <section className="bg-[#C0C9EE] min-h-screen flex flex-col justify-center items-center px-6 py-16 text-center">
+      <section className="bg-[#C0C9EE] min-h-screen flex flex-col justify-center items-center px-6 py-16 text-center bg-[url(/everest.jpg)]">
         <h1 className="text-5xl font-bold mb-4 max-w-3xl">
           Build a Secure Online Election for Free
         </h1>
-        <p className="text-lg text-gray-700 mb-8 max-w-2xl">
+        <p className="text-lg text-black mb-8 max-w-2xl font-bold">
           Create an election for your school or organization in seconds. Your
           voters can vote from any location on any device.
         </p>
@@ -73,6 +74,51 @@ function Home() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Flexible Voter Authentication</h3>
                 <p className="text-gray-600">Choose from various authentication methods to ensure only eligible voters participate.</p>
               </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="flex items-center justify-center bg-gray-900 text-white px-4 py-16 md:py-24">
+        <div className="w-full max-w-6xl">
+          {/* Centered Title with Underline */}
+          <h2 className="text-3xl md:text-4xl font-semibold text-center border-b-4 border-blue-500 w-fit mx-auto pb-2 mb-12">
+            Our Services
+          </h2>
+
+          {/* Services Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Box 1 */}
+            <div className="text-center px-4">
+              <FaVoteYea className="w-12 h-12 mx-auto mb-3"/>
+              <h3 className="text-2xl font-semibold mb-4">Online Elections</h3>
+              <p className="text-lg md:text-xl">
+                Send your voters an email with secure, single-use voting links
+                that ensure only authorized voters can vote, once.
+              </p>
+            </div>
+
+            {/* Box 2 */}
+            <div className="text-center px-4">
+              <FaPollH className="w-12 h-12 mx-auto mb-3"/>
+              <h3 className="text-2xl font-semibold mb-4">Online Polls</h3>
+              <p className="text-lg md:text-xl">
+                Create a personalized poll that anyone can vote on, and
+                publicize it using your website, email, or social media.
+              </p>
+            </div>
+
+            {/* Box 3 */}
+            <div className="text-center px-4 ">
+              <FaLock className="w-12 h-12 mx-auto mb-3"/>
+             
+              <h3 className="text-2xl font-semibold mb-4">
+                Automated Ballot Counts
+              </h3>
+              <p className="text-lg md:text-xl">
+                Count ranked ballots that you've already collected (using e.g.,
+                paper ballots or your own vote collection software).
+              </p>
             </div>
           </div>
         </div>

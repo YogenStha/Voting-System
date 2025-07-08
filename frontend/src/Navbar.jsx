@@ -14,21 +14,21 @@ const Navbar = () => {
 
           {/* Menu for large screens */}
           <div className="hidden md:flex items-center space-x-6">
-            <a href="/" className="text-gray-700 hover:text-indigo-600">
+            <a href="/" className="text-gray-700 hover:text-indigo-600 font-bold">
               Home
             </a>
-            <a href="#" className="text-gray-700 hover:text-indigo-600">
-              About
+            <a href="#" className="text-gray-700 hover:text-indigo-600 font-bold">
+              Features
             </a>
-            <a href="#" className="text-gray-700 hover:text-indigo-600">
+            <a href="#" className="text-gray-700 hover:text-indigo-600  font-bold">
               Services
             </a>
-            <a href="#" className="text-gray-700 hover:text-indigo-600">
+            <a href="#" className="text-gray-700 hover:text-indigo-600 font-bold">
               Contact
             </a>
           </div>
           <div className="hidden md:flex items-center space-x-3">
-            <a href="/login" className="text-gray-700 hover:text-indigo-600">
+            <a href="/login" className="text-gray-700 hover:text-indigo-600 font-bold">
               Login
             </a>
             <a

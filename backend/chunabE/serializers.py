@@ -1,10 +1,14 @@
 import threading
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework import serializers
 from .models import User
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth import authenticate
 from django.core.validators import validate_email as django_validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from utils.send_mail import send_Voter_ID_mail
 from utils.RSA_key import rsa_keys
 
@@ -101,3 +105,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         self.private_key = private_pem
         return user
 
+class UserTokenSerializer(TokenObtainPairSerializer):
+    
+    def validate(self, attrs):
+        voter_id = attrs.get('username')
+        password = attrs.get('password')
+        
+        try:
+            user = User.objects.get(voter_id=voter_id)  
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid voter ID")
+        
+        user = authenticate(username=user.username, voter_id=voter_id, password=password)
+        if user is None:
+            raise serializers.ValidationError("Invalid credentials")
+            
+        attrs["username"] = user.username
+        self.user = user
+        return super().validate(attrs)
+        

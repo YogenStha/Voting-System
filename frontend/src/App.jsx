@@ -4,7 +4,10 @@ import Home from "./Home.jsx";
 import Login from "./Login.jsx";
 import { Routes, Route } from 'react-router-dom';
 import Register from "./Register.jsx";
+import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
+
 function App() {
+  useAuthTokenRefresh(29); // Refresh token every 4 minutes by default
   return (
     <>
       <Navbar/>

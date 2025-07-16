@@ -1,10 +1,11 @@
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
-
+import logo from './assets/everest.jpg';
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
 function Home() {
   return (
     <>
-      <section className="bg-[#C0C9EE] min-h-screen flex flex-col justify-center items-center px-6 py-16 text-center bg-[url(/everest.jpg)]">
+      <section className="bg-[#C0C9EE] min-h-screen flex flex-col justify-center items-center px-6 py-16 text-center bg-cover"
+      style={{ backgroundImage: `url(${logo})` }}>
         <h1 className="text-5xl font-bold mb-4 max-w-3xl">
           Build a Secure Online Election for Free
         </h1>

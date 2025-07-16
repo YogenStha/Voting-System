@@ -32,19 +32,17 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     def validate_username(self, value):
         print(value)
-        if value == "":
+        if not value:
             raise serializers.ValidationError("This field is required.")
-        if value.isdigit():
-            raise serializers.ValidationError("This field cannot contain numbers.")
         if any(char.isdigit() for char in value):
-            raise serializers.ValidationError("Nmae cannot contain numbers.")
-        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Name cannot contain numbers.")
+        if User.objects.only("username").filter(username=value).exists():
             raise serializers.ValidationError("This name is already taken.")
          
         return value
     
     def validate_email(self, value):
-        if value == "":
+        if not value:
             raise serializers.ValidationError("This field is required.")
         
         try:
@@ -52,12 +50,22 @@ class RegisterSerializer(serializers.ModelSerializer):
         except DjangoValidationError:
             raise serializers.ValidationError("Invalid email format.")
         
-        if User.objects.filter(email=value).exists():
+        if User.objects.only("email").filter(email=value).exists():
             raise serializers.ValidationError("This email is already taken.")
 
         if not verify_mail(value):
             raise serializers.ValidationError("Email is not valid.")
         
+        return value
+    
+    def validate_student_id(self, value):
+        if not value:
+            raise serializers.ValidationError("This field is required.")
+        if not value.isdigit():
+            raise serializers.ValidationError("Student ID must be a number.")
+        if User.objects.only("student_id").filter(student_id=value).exists():
+            raise serializers.ValidationError("This student ID is already taken.")
+
         return value
     
     def validate(self, data):
@@ -67,16 +75,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Passwords do not match.")
         validate_password(password)
         return data
-    
-    def validate_student_id(self, value):
-        if value == "":
-            raise serializers.ValidationError("This field is required.")
-        if not value.isdigit():
-            raise serializers.ValidationError("Student ID must be a number.")
-        if User.objects.filter(student_id=value).exists():
-            raise serializers.ValidationError("This student ID is already taken.")
-
-        return value
 
     def create(self, validated_data):
         validated_data.pop('confirmPassword') 
@@ -91,19 +89,19 @@ class RegisterSerializer(serializers.ModelSerializer):
             nonlocal private_pem, public_pem
             private_pem, public_pem = rsa_keys()
         
-        t1 = threading.Thread(target=generate_key_pair)
-        t2 = threading.Thread(target=send_mail)
+        thread_key = threading.Thread(target=generate_key_pair)
+        thread_mail = threading.Thread(target=send_mail)
         
-        t1.start()
-        t2.start()
+        thread_key.start()
+        thread_mail.start()
         
-        t1.join()
+        thread_key.join()
         
         user = User.objects.create_user(**validated_data, public_key=public_pem)
         user.save()
   
         self.private_key = private_pem
-        return user
+        return user, private_pem
 
 class UserTokenSerializer(TokenObtainPairSerializer):
     
@@ -112,7 +110,7 @@ class UserTokenSerializer(TokenObtainPairSerializer):
         password = attrs.get('password')
         
         try:
-            user = User.objects.get(voter_id=voter_id)  
+            user = User.objects.only("username").get(voter_id=voter_id)  
         except User.DoesNotExist:
             raise serializers.ValidationError("Invalid voter ID")
         

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { storePrivateKey } from './hooks/secureDB';;
+
 const Register = () => {
-  const navigate= useNavigate();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     student_id: '',
@@ -23,31 +25,45 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-   // console.log('Submit clicked, sending data:', formData);
-    try{
+    // console.log('Submit clicked, sending data:', formData);
+    try {
       const response = await fetch('http://localhost:8000/api/register/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      navigate('/login');
-    } else {
-      alert("Error: " + JSON.stringify(data));
-    }
+      if (response.ok) {
+        
+        navigate('/login');
+      } else {
+        alert("Error: " + JSON.stringify(data));
+      }
+
+      const private_key = data.private_key; // yo private key lai Indexed DB ma store gara hai
+        const user_id = data.user_id;
+
+        const save_key = async () => {
+          try {
+            await storePrivateKey(user_id, private_key);
+            console.log("Private key stored successfully.");
+          }
+          catch (error) {
+            console.log("Error storing private key:", error);
+            alert("Failed to store private key. Please try again.");
+          }
+        }
+        await save_key();
 
     } catch (error) {
       console.error("Error during registration:", error);
       alert("An error occurred. Please try again. " + error.message);
     }
-    
-    const private_key = data.private_key; // yo private key lai Indexed DB ma store gara hai
-    
+
 
   };
 

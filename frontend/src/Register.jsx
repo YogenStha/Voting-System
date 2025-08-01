@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { storePrivateKey } from './hooks/secureDB';;
+
 
 const Register = () => {
   const navigate = useNavigate();
@@ -43,21 +43,6 @@ const Register = () => {
       } else {
         alert("Error: " + JSON.stringify(data));
       }
-
-      const private_key = data.private_key; // yo private key lai Indexed DB ma store gara hai
-        const user_id = data.user_id;
-
-        const save_key = async () => {
-          try {
-            await storePrivateKey(user_id, private_key);
-            console.log("Private key stored successfully.");
-          }
-          catch (error) {
-            console.log("Error storing private key:", error);
-            alert("Failed to store private key. Please try again.");
-          }
-        }
-        await save_key();
 
     } catch (error) {
       console.error("Error during registration:", error);

@@ -1,6 +1,8 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
+import hashlib
+
 
 def rsa_keys():
     private_key =  rsa.generate_private_key(public_exponent=65537, 
@@ -20,4 +22,6 @@ def rsa_keys():
         format=serialization.PublicFormat.SubjectPublicKeyInfo
     ).decode('utf-8')
     
-    return private_pem, public_pem
+    fingerprint = hashlib.sha256(public_pem.encode()).hexdigest()
+    
+    return private_pem, public_pem, fingerprint

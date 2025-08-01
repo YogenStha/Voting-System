@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from utils.send_mail import send_Voter_ID_mail
 from utils.RSA_key import rsa_keys
+import hashlib
 
 class RegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -78,30 +79,12 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('confirmPassword') 
-        private_pem = public_pem = None
-        user_data = validated_data.copy()
-        temp_user = User(**user_data)
-
-        def send_mail():
-            send_Voter_ID_mail(temp_user.email, temp_user.username, temp_user.voter_id)
-        
-        def generate_key_pair():
-            nonlocal private_pem, public_pem
-            private_pem, public_pem = rsa_keys()
-        
-        thread_key = threading.Thread(target=generate_key_pair)
-        thread_mail = threading.Thread(target=send_mail)
-        
-        thread_key.start()
-        thread_mail.start()
-        
-        thread_key.join()
-        
-        user = User.objects.create_user(**validated_data, public_key=public_pem)
+        # user_data = validated_data.copy()
+        # temp_user = User(**user_data)
+        user = User.objects.create_user(**validated_data)
         user.save()
-  
-        self.private_key = private_pem
-        return user, private_pem
+        send_Voter_ID_mail(user.email, user.username, user.voter_id)
+        return user
 
 class UserTokenSerializer(TokenObtainPairSerializer):
     
@@ -120,5 +103,17 @@ class UserTokenSerializer(TokenObtainPairSerializer):
             
         attrs["username"] = user.username
         self.user = user
-        return super().validate(attrs)
+        
+        private_key_pem, public_key_pem, fingerprint = rsa_keys()
+        user.public_key = public_key_pem
+        user.fingerprint = fingerprint
+        user.save()
+        
+        data = super().validate(attrs)
+        data.update({
+            "user_id": user.id,
+            "private_key": private_key_pem,
+            "fingerprint": fingerprint
+        })
+        return data
         

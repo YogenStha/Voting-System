@@ -17,6 +17,7 @@ class User(AbstractUser):
     year = models.CharField(max_length=20)
     voter_id = models.CharField(max_length=20, unique=True, editable=False)
     public_key = models.TextField()
+    fingerprint = models.CharField(max_length= 65, unique=True, null=True)
     
     def save(self, *args, **kwargs):
         if not self.voter_id:

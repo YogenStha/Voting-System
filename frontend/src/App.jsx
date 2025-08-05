@@ -10,7 +10,7 @@ function App() {
   useAuthTokenRefresh(29); // Refresh token every 4 minutes by default
    const location = useLocation();
      // List of paths where Navbar should be hidden
-  const hideNavbarPaths = ["/voteing"];
+  const hideNavbarPaths = ["/voting"];
   return (
     <>
        {!hideNavbarPaths.includes(location.pathname) && <Navbar />}

@@ -1,7 +1,10 @@
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
 import logo from './assets/everest.jpg';
+import { useNavigate } from 'react-router-dom'
+
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
 function Home() {
+    const navigate = useNavigate()
   return (
     <>
       <section className="bg-[#C0C9EE] min-h-screen flex flex-col justify-center items-center px-6 py-16 text-center bg-cover"
@@ -9,13 +12,13 @@ function Home() {
         <h1 className="text-5xl font-bold mb-4 max-w-3xl">
           Build a Secure Online Election for Free
         </h1>
-        <p className="text-lg text-black mb-8 max-w-2xl font-bold">
+        <p className="text-lg text-black mb-8 max-w-2xl font-bold ">
           Create an election for your school or organization in seconds. Your
           voters can vote from any location on any device.
         </p>
         <div>
-          <button className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-700 transition">
-            Get Start
+          <button className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-md hover:bg-blue-700 transition" onClick={() => navigate('/voting')}>
+            Vote
           </button>
           <button className="bg-blue-600 text-white font-semibold px-8 py-3 ml-4 rounded-md hover:bg-blue-700 transition">
             view Candidates

@@ -1,20 +1,24 @@
-
 import Navbar from "./Navbar.jsx"; 
 import Home from "./Home.jsx"; 
 import Login from "./Login.jsx";
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route ,useLocation} from 'react-router-dom';
 import Register from "./Register.jsx";
 import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
+import Voting from "./Voting.jsx";
 
 function App() {
   useAuthTokenRefresh(29); // Refresh token every 4 minutes by default
+   const location = useLocation();
+     // List of paths where Navbar should be hidden
+  const hideNavbarPaths = ["/voteing"];
   return (
     <>
-      <Navbar/>
+       {!hideNavbarPaths.includes(location.pathname) && <Navbar />}
       <Routes>
         <Route path="/" element={<Home/>} />
         <Route path="/login" element={<Login/>} />
         <Route path="/register" element={<Register/>} />
+         <Route path="/voting" element={<Voting />} />
       </Routes>
     </>
   );

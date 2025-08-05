@@ -89,6 +89,12 @@ const Navbar = () => {
           >
             Register
           </a>
+             <a
+            href="#"
+            className="block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-center"
+          >
+            VotingDashboard
+          </a>
         </div>
       )}
     </nav>

@@ -48,7 +48,74 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         ("Permissions", "tab-permissions"),
         ("Dates", "tab-dates"),
     ]
+
+@register(Candidate)
+class CandidateAdmin(ModelAdmin):
+    list_display = ('name', 'party', 'position', 'image', 'manifesto', 'is_verified')
+    search_fields = ('user__username', 'party__name', 'position__name')
+    # list_filter = ('is_active')
+    
+    fieldsets = (
+        (None, {
+            "fields": (
+                'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified'
+            ),
+        }),
+    )
+    
+@register(Party)
+class PartyAdmin(ModelAdmin):
+    list_display = ('party_name', 'party_symbol')
+    search_fields = ('party_name',)
+    
+    fieldsets = (
+        (None, {
+            "fields": (
+                'party_name', 'party_symbol'
+            ),
+        }),
+    )
+
+@register(Position)
+class PositionAdmin(ModelAdmin):
+    list_display = ('position_name',)
+    search_fields = ('position_name',)
+    
+    fieldsets = (
+        (None, {
+            "fields": (
+                'position_name',
+            ),
+        }),
+    )
+    
+@register(Election)
+class ElectionAdmin(ModelAdmin):
+    list_display = ('name', 'start_date', 'end_date', 'is_active')
+    search_fields = ('name',)
+    
+    fieldsets = (
+        (None, {
+            "fields": (
+                'name', 'start_date', 'end_date', 'is_active'
+            ),
+        }),
+    )
+    
+@register(ElectionResult)
+class ElectionResultAdmin(ModelAdmin):
+    list_display = ('election', 'candidate', 'votes')
+    search_fields = ('election__name', 'candidate__name')
+    
+    fieldsets = (
+        (None, {
+            "fields": (
+                'election', 'candidate', 'votes'
+            ),
+        }),
+    )
+    
 # admin.site.register(User) 
-admin.site.register(Candidate)
-admin.site.register(Party)
-admin.site.register(Position)
+# admin.site.register(Candidate)
+# admin.site.register(Party)
+# admin.site.register(Position)

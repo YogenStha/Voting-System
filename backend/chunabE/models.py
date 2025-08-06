@@ -39,6 +39,8 @@ class Candidate(models.Model):
     candidate_id = models.CharField(max_length=10, unique=True)
     party = models.ForeignKey('Party', on_delete=models.CASCADE)
     position = models.ForeignKey('Position', on_delete=models.CASCADE)
+    is_verified = models.BooleanField(default=False)
+    
     
     def __str__(self):
         return f"{self.name} - ({self.party.party_name})"
@@ -81,3 +83,20 @@ class Revote(models.Model):
     old_vote_id = models.CharField(max_length=20, unique=True)
     voter = models.ForeignKey(User, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True)
+    
+class Election(models.Model):
+    name = models.CharField(max_length=100)
+    start_date = models.DateTimeField()
+    end_date = models.DateTimeField()
+    is_active = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.name
+
+class ElectionResult(models.Model):
+    election = models.ForeignKey(Election, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
+    votes = models.IntegerField(default=0)
+    
+    def __str__(self):
+        return f"{self.election.name} - {self.candidate.name} - {self.votes} votes"

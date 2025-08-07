@@ -8,5 +8,13 @@ export default defineConfig({
     outDir: 'dist',         // default, can omit
     assetsDir: 'assets',    // ensures all assets (images, fonts, etc.) go into dist/assets
   },
-   
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })

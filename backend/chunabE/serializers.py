@@ -2,7 +2,7 @@ import threading
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import User
+from .models import User, Candidate, Election, Party, Position
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
@@ -116,4 +116,35 @@ class UserTokenSerializer(TokenObtainPairSerializer):
             "fingerprint": fingerprint
         })
         return data
+
+class PartySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Party
+        fields = ['party_name', 'party_symbol']
+
+class PositionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Position
+        fields = ['position_name']
         
+class CandidateSerializer(serializers.ModelSerializer):
+    party = PartySerializer()
+    position = PositionSerializer()
+    class Meta:
+        model = Candidate
+        fields = ['name', 'image', 'manifesto', 'party', 'position', 'is_verified', 'election', 'position']
+        
+
+class ElectionSerializer(serializers.ModelSerializer):
+    candidates = CandidateSerializer(many=True)
+    
+    class Meta:
+        model = Election
+        fields = ['id', 'name', 'start_date', 'end_date', 'is_active', 'candidates']
+    
+    def validate(self, data):
+        if data['start_date'] >= data['end_date']:
+            raise serializers.ValidationError("Start date must be before end date.")
+        if data['is_active'] == 0:
+            raise serializers.ValidationError("Election must be active.")
+        return data

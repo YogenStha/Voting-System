@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 import random
 import string
+from django.utils.html import mark_safe
 
 def generate_random_voter_id():
     random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
@@ -37,10 +38,16 @@ class Candidate(models.Model):
     image = models.ImageField(upload_to='candidates/')
     manifesto = models.TextField()
     candidate_id = models.CharField(max_length=10, unique=True)
-    party = models.ForeignKey('Party', on_delete=models.CASCADE)
-    position = models.ForeignKey('Position', on_delete=models.CASCADE)
+    party = models.ForeignKey('Party', related_name='party', on_delete=models.CASCADE)
+    position = models.ForeignKey('Position', related_name='position', on_delete=models.CASCADE)
     is_verified = models.BooleanField(default=False)
+    election = models.ForeignKey('Election', related_name='candidates', on_delete=models.CASCADE)
     
+    # def image_privew(self):
+    #     return mark_safe(f'<img src="{self.image.url}" alt = "" width = "300"/>')    
+    # def admin_image_privew(self):
+    #     return mark_safe(f'<img src="{self.image.url}" alt = "" width = "100" style="border: 1px solid #000;border-radius:50%;"/>')    
+    # admin_image_privew.short_description = "Image"
     
     def __str__(self):
         return f"{self.name} - ({self.party.party_name})"
@@ -64,7 +71,7 @@ class Vote(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     is_committed = models.BooleanField(default=False)
     signature = models.TextField(blank=True, null=True)
-    
+    election = models.ForeignKey('Election', on_delete=models.CASCADE)
 
 class BlockTransaction(models.Model):
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)

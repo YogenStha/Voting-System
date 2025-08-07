@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import *
 from django.contrib.admin import register
+from django.utils.html import format_html
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 
@@ -48,11 +49,14 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
         ("Permissions", "tab-permissions"),
         ("Dates", "tab-dates"),
     ]
+    
+    
 
 @register(Candidate)
 class CandidateAdmin(ModelAdmin):
-    list_display = ('name', 'party', 'position', 'image', 'manifesto', 'is_verified')
+    list_display = ('name', 'party', 'position', 'manifesto', 'is_verified')
     search_fields = ('user__username', 'party__name', 'position__name')
+    
     # list_filter = ('is_active')
     
     fieldsets = (
@@ -62,6 +66,13 @@ class CandidateAdmin(ModelAdmin):
             ),
         }),
     )
+    
+    # def image_preview(self, obj):
+    #     if obj.image and hasattr(obj.image, 'url'):
+    #         return format_html(f'<img src="{obj.image.url}" width="150" height="150" style="object-fit:contain;" />' )
+    #     return "No Image"
+
+    # image_preview.short_description = "Image Preview"
     
 @register(Party)
 class PartyAdmin(ModelAdmin):

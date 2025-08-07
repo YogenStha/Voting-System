@@ -54,7 +54,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
 
 @register(Candidate)
 class CandidateAdmin(ModelAdmin):
-    list_display = ('name', 'party', 'position', 'manifesto', 'is_verified')
+    list_display = ('name', 'party', 'position', 'manifesto', 'is_verified', 'election')
     search_fields = ('user__username', 'party__name', 'position__name')
     
     # list_filter = ('is_active')
@@ -62,7 +62,7 @@ class CandidateAdmin(ModelAdmin):
     fieldsets = (
         (None, {
             "fields": (
-                'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified'
+                'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified', 'election'
             ),
         }),
     )

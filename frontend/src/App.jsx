@@ -4,8 +4,8 @@ import Login from "./Login.jsx";
 import { Routes, Route ,useLocation} from 'react-router-dom';
 import Register from "./Register.jsx";
 import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
-import Voting from "./Voting.jsx";
 import ElectionDetails from "./dashboard.jsx";
+import VotingPage from "./as.jsx";
 
 // add protectedRoutes.jsx later to allow only logged in users to access certain routes
 function App() {
@@ -20,8 +20,8 @@ function App() {
         <Route path="/" element={<Home/>} />
         <Route path="/login" element={<Login/>} />
         <Route path="/register" element={<Register/>} />
-        <Route path="/voting" element={<Voting />} />
         <Route path="/dashboard" element={<ElectionDetails />} />
+        <Route path="/voting" element={<VotingPage />} />
       </Routes>
     </>
   );

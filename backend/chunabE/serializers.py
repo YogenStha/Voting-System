@@ -2,7 +2,7 @@ import threading
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import User, Candidate, Election, Party, Position
+from .models import User, Candidate, Election, Party, Position, Vote
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
@@ -148,3 +148,26 @@ class ElectionSerializer(serializers.ModelSerializer):
         if data['is_active'] == 0:
             raise serializers.ValidationError("Election must be active.")
         return data
+    
+class VoteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['voter', 'candidate', 'election']
+    
+    def validate(self, data):
+        if not data['voter'].is_authenticated:
+            raise serializers.ValidationError("User must be authenticated to vote.")
+        if not data['candidate'].is_verified:
+            raise serializers.ValidationError("Candidate must be verified to receive votes.")
+        return data
+    
+    def create(self, validated_data):
+        voter = validated_data['voter']
+        candidate = validated_data['candidate']
+        election = validated_data['election']
+        
+        if Vote.objects.filter(voter=voter, election=election).exists():
+            raise serializers.ValidationError("You have already voted in this election.")
+        
+        vote = Vote.objects.create(voter=voter, candidate=candidate, election=election)
+        return vote

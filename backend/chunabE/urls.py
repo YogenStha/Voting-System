@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/login/', UserLoginJWTView.as_view(), name='user_login'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/elections/', ElectionView.as_view(), name='election_list'),
+    # path('api/vote', )
     path('<path:path>', TemplateView.as_view(template_name='index.html')),
     
 ]

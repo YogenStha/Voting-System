@@ -18,197 +18,16 @@ const ElectionVotingApp = () => {
   const fetchElectionData = async () => {
     try {
       setLoading(true);
-      
-      // Simulate API delay
+
+      //  API call to fetch elections and candidates
       const response = await fetch("http://localhost:8000/api/elections/");
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch elections');
+      }
       const data = await response.json();
-      // Dummy data matching your backend structure
-      const dummyData = {
-        elections: [
-          {
-            id: 1,
-            name: "Presidential Election 2024",
-            start_date: "2024-11-01",
-            end_date: "2024-11-30",
-            is_active: true
-          },
-          {
-            id: 2,
-            name: "Senate Election 2024",
-            start_date: "2024-10-15",
-            end_date: "2024-12-15",
-            is_active: true
-          },
-          {
-            id: 3,
-            name: "Governor Election 2024",
-            start_date: "2024-09-01",
-            end_date: "2024-11-15",
-            is_active: true
-          }
-        ],
-        candidates: [
-          // Presidential Election Candidates
-          {
-            id: 1,
-            name: "Sarah Johnson",
-            image: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Building a stronger economy through innovation, creating jobs, and investing in renewable energy. My vision includes universal healthcare, education reform, and strengthening our democratic institutions for a better future.",
-            party: {
-              party_name: "Progressive Party",
-              party_symbol: "🌟"
-            },
-            position: {
-              position_name: "President"
-            },
-            is_verified: true,
-            election: 1
-          },
-          {
-            id: 2,
-            name: "Michael Rodriguez",
-            image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Focused on economic growth, traditional values, and strong national defense. Committed to reducing taxes, supporting small businesses, and maintaining law and order while protecting constitutional rights.",
-            party: {
-              party_name: "Conservative Alliance",
-              party_symbol: "🛡️"
-            },
-            position: {
-              position_name: "President"
-            },
-            is_verified: true,
-            election: 1
-          },
-          {
-            id: 3,
-            name: "Dr. Emma Chen",
-            image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Environmental protection, sustainable development, and social justice. Advocating for climate action, affordable housing, and comprehensive immigration reform to build an inclusive society.",
-            party: {
-              party_name: "Green Future Party",
-              party_symbol: "🌱"
-            },
-            position: {
-              position_name: "President"
-            },
-            is_verified: true,
-            election: 1
-          },
-          {
-            id: 4,
-            name: "James Wilson",
-            image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Independent leadership for the people. Fighting corruption, promoting transparency, and ensuring government accountability. Focus on bipartisan solutions and practical governance.",
-            party: {
-              party_name: "Independent Coalition",
-              party_symbol: "⭐"
-            },
-            position: {
-              position_name: "President"
-            },
-            is_verified: false,
-            election: 1
-          },
-          // Senate Election Candidates
-          {
-            id: 5,
-            name: "Lisa Thompson",
-            image: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Healthcare reform and education funding. Working to make healthcare accessible to all citizens and investing in our children's future through better schools and teacher support.",
-            party: {
-              party_name: "Progressive Party",
-              party_symbol: "🌟"
-            },
-            position: {
-              position_name: "Senator"
-            },
-            is_verified: true,
-            election: 2
-          },
-          {
-            id: 6,
-            name: "Robert Davis",
-            image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Business-friendly policies and job creation. Supporting entrepreneurs, reducing regulatory burden, and attracting investment to boost local economy and create employment opportunities.",
-            party: {
-              party_name: "Conservative Alliance",
-              party_symbol: "🛡️"
-            },
-            position: {
-              position_name: "Senator"
-            },
-            is_verified: true,
-            election: 2
-          },
-          {
-            id: 7,
-            name: "Maria Garcia",
-            image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Community development and social programs. Focusing on affordable housing, public transportation, and support for working families to build stronger communities.",
-            party: {
-              party_name: "Community First",
-              party_symbol: "🏘️"
-            },
-            position: {
-              position_name: "Senator"
-            },
-            is_verified: true,
-            election: 2
-          },
-          // Governor Election Candidates
-          {
-            id: 8,
-            name: "David Park",
-            image: "https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=400&h=400&fit=crop&crop=face",
-            manifesto: "State modernization and technology advancement. Bringing innovation to government services, improving infrastructure, and preparing our state for the digital future.",
-            party: {
-              party_name: "Tech Forward Party",
-              party_symbol: "💻"
-            },
-            position: {
-              position_name: "Governor"
-            },
-            is_verified: true,
-            election: 3
-          },
-          {
-            id: 9,
-            name: "Jennifer Adams",
-            image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Rural development and agricultural support. Strengthening farming communities, improving rural healthcare, and building better infrastructure to connect all regions of our state.",
-            party: {
-              party_name: "Rural Alliance",
-              party_symbol: "🌾"
-            },
-            position: {
-              position_name: "Governor"
-            },
-            is_verified: true,
-            election: 3
-          },
-          {
-            id: 10,
-            name: "Thomas Brown",
-            image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop&crop=face",
-            manifesto: "Fiscal responsibility and efficient government. Reducing wasteful spending, streamlining bureaucracy, and ensuring taxpayer money is used effectively for essential services.",
-            party: {
-              party_name: "Fiscal Conservative Party",
-              party_symbol: "💰"
-            },
-            position: {
-              position_name: "Governor"
-            },
-            is_verified: false,
-            election: 3
-          }
-        ]
-      };
-      
       setElections(data.elections);
       setCandidates(data.candidates);
-      if (data.elections?.length > 0) {
-        setSelectedElection(data.elections[0]);
-      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -220,26 +39,45 @@ const ElectionVotingApp = () => {
     return candidates.filter(candidate => candidate.election === electionId);
   };
 
-  const handleVote = (electionId, candidateId) => {
-    setVotes(prev => ({
-      ...prev,
-      [electionId]: candidateId
-    }));
+  const handleVote = (electionId, positionId, candidateId) => {
+    console.log('handleVote called:', { electionId, positionId, candidateId });
+    setVotes(prev => {
+      const newVotes = {
+        ...prev,
+        [electionId]: {
+          ...(prev[electionId] || {}),
+          [positionId]: candidateId
+        }
+      };
+      console.log('New votes state:', newVotes);
+      return newVotes;
+    });
   };
 
+  // Test log to make sure component is working
+  console.log('Component rendered, selectedElection:', selectedElection?.name);
+
   const submitVote = async (electionId) => {
-    if (!votes[electionId]) {
-      alert('Please select a candidate before voting');
+    // Get all positions for this election
+    const electionCandidates = getElectionCandidates(electionId);
+    const positions = [...new Set(electionCandidates.map(candidate => candidate.position.position_name))];
+    
+    // Check if votes have been made for all positions
+    const electionVotes = votes[electionId] || {};
+    const hasVotedForAllPositions = positions.every(positionName => electionVotes[positionName]);
+    
+    if (!hasVotedForAllPositions) {
+      alert('Please select a candidate for each position before voting');
       return;
     }
 
     try {
       // Simulate API delay for realistic experience
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Simulate successful vote submission
-      console.log(`Vote submitted for election ${electionId}, candidate ${votes[electionId]}`);
-      
+      console.log(`Vote submitted for election ${electionId}:`, electionVotes);
+
       setVotedElections(prev => new Set([...prev, electionId]));
       setShowSuccessModal(true);
       setTimeout(() => setShowSuccessModal(false), 3000);
@@ -254,6 +92,12 @@ const ElectionVotingApp = () => {
       month: 'long',
       day: 'numeric'
     });
+  };
+
+  // Check if any votes have been made for the current election
+  const hasAnyVotes = (electionId) => {
+    const electionVotes = votes[electionId];
+    return electionVotes && Object.keys(electionVotes).length > 0;
   };
 
   if (loading) {
@@ -274,7 +118,7 @@ const ElectionVotingApp = () => {
           <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 text-center mb-2">Error</h2>
           <p className="text-gray-600 text-center">{error}</p>
-          <button 
+          <button
             onClick={fetchElectionData}
             className="w-full mt-4 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
           >
@@ -328,11 +172,10 @@ const ElectionVotingApp = () => {
                   <button
                     key={election.id}
                     onClick={() => setSelectedElection(election)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 ${
-                      selectedElection?.id === election.id
-                        ? 'border-blue-500 bg-blue-50 shadow-md'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all duration-300 ${selectedElection?.id === election.id
+                      ? 'border-blue-500 bg-blue-50 shadow-md'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      }`}
                   >
                     <h3 className="font-semibold text-gray-800 mb-2">{election.name}</h3>
                     <p className="text-sm text-gray-600 mb-1">
@@ -374,96 +217,114 @@ const ElectionVotingApp = () => {
 
                 {/* Candidates */}
                 <div className="p-8">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
-                    <Users className="h-6 w-6 mr-2 text-indigo-600" />
-                    Candidates ({getElectionCandidates(selectedElection.id).length})
-                  </h3>
+                  {Object.entries(
+                    getElectionCandidates(selectedElection.id).reduce((acc, candidate) => {
+                      const position = candidate.position.position_name;
+                      if (!acc[position]) acc[position] = [];
+                      acc[position].push(candidate);
+                      return acc;
+                    }, {})
+                  ).map(([positionName, candidates]) => (
+                    <div key={positionName} className="mb-10">
+                      <h3 className="text-2xl font-bold text-gray-800 mb-8 flex items-center">
+                        <Users className="h-6 w-6 mr-2 text-indigo-600" />
+                        {positionName}
+                      </h3>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {getElectionCandidates(selectedElection.id).map((candidate) => (
-                      <div
-                        key={candidate.id}
-                        className={`border-2 rounded-2xl p-6 transition-all duration-300 cursor-pointer transform hover:scale-105 ${
-                          votes[selectedElection.id] === candidate.id
-                            ? 'border-green-500 bg-green-50 shadow-lg'
-                            : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
-                        }`}
-                        onClick={() => handleVote(selectedElection.id, candidate.id)}
-                      >
-                        <div className="flex items-start space-x-4">
-                          <div className="flex-shrink-0">
-                            {candidate.image ? (
-                              <img
-                                src={candidate.image}
-                                alt={candidate.name}
-                                className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
-                              />
-                            ) : (
-                              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
-                                <User className="h-10 w-10 text-white" />
-                              </div>
-                            )}
-                            {candidate.is_verified && (
-                              <CheckCircle className="h-5 w-5 text-blue-500 -mt-2 ml-16" />
-                            )}
-                          </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {candidates.map((candidate, index) => {
+                          // Debug the candidate structure
+                          console.log('Candidate object:', candidate);
                           
-                          <div className="flex-1">
-                            <h4 className="text-xl font-bold text-gray-800 mb-2">{candidate.name}</h4>
-                            
-                            <div className="mb-3">
-                              <p className="text-sm text-gray-600 mb-1">Party: {candidate.party.party_name}</p>
-                              <p className="text-sm text-gray-600 mb-1">Position: {candidate.position.position_name}</p>
-                              {candidate.party.party_symbol && (
-                                <p className="text-sm text-gray-600">Symbol: {candidate.party.party_symbol}</p>
-                              )}
-                            </div>
+                          // Since there's no id field, we'll use the candidate name + position as unique identifier
+                          // And use position_name as position identifier
+                          const candidateKey = `${candidate.name}_${candidate.position.position_name}`;
+                          const positionKey = candidate.position.position_name;
+                          
+                          // Check if this specific candidate is selected for their position
+                          const electionVotes = votes[selectedElection.id];
+                          const positionVote = electionVotes?.[positionKey];
+                          const isSelected = positionVote !== undefined && positionVote === candidateKey;
 
-                            {candidate.manifesto && (
-                              <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                                <div className="flex items-center text-gray-600 mb-2">
-                                  <FileText className="h-4 w-4 mr-1" />
-                                  <span className="text-sm font-medium">Manifesto</span>
+                          return (
+                            <div
+                              key={`${candidate.name}_${index}`}
+                              className={`border-2 rounded-2xl p-6 transition-all duration-300 cursor-pointer transform hover:scale-105 ${isSelected
+                                  ? 'border-green-500 bg-green-50 shadow-lg'
+                                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                                }`}
+                              onClick={() => {
+                                console.log('Card clicked!', { 
+                                  electionId: selectedElection.id, 
+                                  positionKey: positionKey, 
+                                  candidateKey: candidateKey 
+                                });
+                                handleVote(selectedElection.id, positionKey, candidateKey);
+                              }}
+                            >
+                              <div className="flex items-start space-x-4">
+                                <div className="flex-shrink-0">
+                                  {candidate.image ? (
+                                    <img
+                                      src={candidate.image}
+                                      alt={candidate.name}
+                                      className="w-20 h-20 rounded-full object-cover border-4 border-gray-200"
+                                    />
+                                  ) : (
+                                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center">
+                                      <User className="h-10 w-10 text-white" />
+                                    </div>
+                                  )}
+                                  {candidate.is_verified && (
+                                    <CheckCircle className="h-5 w-5 text-blue-500 -mt-2 ml-16" />
+                                  )}
                                 </div>
-                                <p className="text-sm text-gray-700 line-clamp-3">{candidate.manifesto}</p>
-                              </div>
-                            )}
 
-                            <div className="flex justify-between items-center mt-4">
-                              <div className="flex items-center space-x-2">
-                                {candidate.is_verified && (
-                                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                    Verified
-                                  </span>
-                                )}
-                              </div>
-                              
-                              {votes[selectedElection.id] === candidate.id && (
-                                <div className="flex items-center text-green-600">
-                                  <CheckCircle className="h-5 w-5 mr-1" />
-                                  <span className="text-sm font-medium">Selected</span>
+                                <div className="flex-1">
+                                  <h4 className="text-xl font-bold text-gray-800 mb-2">{candidate.name}</h4>
+
+                                  <div className="mb-3">
+                                    <p className="text-sm text-gray-600 mb-1">Party: {candidate.party.party_name}</p>
+                                    <p className="text-sm text-gray-600 mb-1">Position: {candidate.position.position_name}</p>
+                                  </div>
+
+                                  <div className="flex justify-between items-center mt-4">
+                                    <div className="flex items-center space-x-2">
+                                      {candidate.is_verified && (
+                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                          <CheckCircle className="h-3 w-3 mr-1" />
+                                          Verified
+                                        </span>
+                                      )}
+                                    </div>
+
+                                    {isSelected && (
+                                      <div className="flex items-center text-green-600">
+                                        <CheckCircle className="h-5 w-5 mr-1" />
+                                        <span className="text-sm font-medium">Selected</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                              )}
+                              </div>
                             </div>
-                          </div>
-                        </div>
+                          )
+                        })}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
 
                   {/* Vote Button */}
                   <div className="border-t pt-6">
                     <button
                       onClick={() => submitVote(selectedElection.id)}
-                      disabled={!votes[selectedElection.id] || votedElections.has(selectedElection.id)}
-                      className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${
-                        votedElections.has(selectedElection.id)
-                          ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                          : votes[selectedElection.id]
+                      disabled={!hasAnyVotes(selectedElection.id) || votedElections.has(selectedElection.id)}
+                      className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${votedElections.has(selectedElection.id)
+                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                        : hasAnyVotes(selectedElection.id)
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
                           : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                      }`}
+                        }`}
                     >
                       {votedElections.has(selectedElection.id) ? (
                         <div className="flex items-center justify-center">
@@ -473,7 +334,7 @@ const ElectionVotingApp = () => {
                       ) : (
                         <div className="flex items-center justify-center">
                           <Vote className="h-5 w-5 mr-2" />
-                          {votes[selectedElection.id] ? 'Submit Vote' : 'Select a Candidate'}
+                          {hasAnyVotes(selectedElection.id) ? 'Submit Vote' : 'Select Candidates'}
                         </div>
                       )}
                     </button>
@@ -487,6 +348,14 @@ const ElectionVotingApp = () => {
                 <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-2xl font-bold text-gray-600 mb-2">No Active Elections</h3>
                 <p className="text-gray-500">There are currently no active elections available.</p>
+              </div>
+            )}
+
+            {!selectedElection && elections.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+                <Vote className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-2xl font-bold text-gray-600 mb-2">Select an Election</h3>
+                <p className="text-gray-500">Choose an election from the sidebar to view candidates and cast your vote.</p>
               </div>
             )}
           </div>

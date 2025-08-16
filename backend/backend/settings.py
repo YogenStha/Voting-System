@@ -34,9 +34,22 @@ ALLOWED_HOSTS = []
 CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8000",
+    "http://localhost:5173",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "http://127.0.0.1:8000",
+    "http://localhost:5173",
+    "http://localhost",
+    "http://localhost:8000",
+]
+
+
 CORS_ALLOW_ALL_ORIGINS = True  
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 
 # Application definition
 
@@ -56,15 +69,16 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'path.to.your.module.CsrfExemptForJWT',  # Replace with actual import path
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'corsheaders.middleware.CorsMiddleware'
 ]
+
 
 ROOT_URLCONF = 'backend.urls'
 

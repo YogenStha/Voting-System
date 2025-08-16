@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText } from 'lucide-react';
+import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircle } from 'lucide-react';
+import Cookies from 'js-cookie';
 
 const ElectionVotingApp = () => {
   const [elections, setElections] = useState([]);
@@ -9,17 +10,71 @@ const ElectionVotingApp = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [submittingVote, setSubmittingVote] = useState(false);
   const [votedElections, setVotedElections] = useState(new Set());
+  const voterId = sessionStorage.getItem("user_id");
 
   useEffect(() => {
     fetchElectionData();
+    fetchUserVoteHistory();
   }, []);
+
+  // Load voted elections from localStorage on component mount
+  const loadVotedElections = () => {
+    try {
+      const savedVotedElections = localStorage.getItem(`votedElections_${voterId}`);
+      if (savedVotedElections) {
+        const parsedElections = JSON.parse(savedVotedElections);
+        setVotedElections(new Set(parsedElections));
+      }
+    } catch (error) {
+      console.error('Error loading voted elections:', error);
+    }
+  };
+
+  // Save voted elections to localStorage
+  const saveVotedElections = (electionIds) => {
+    try {
+      localStorage.setItem(`votedElections_${voterId}`, JSON.stringify([...electionIds]));
+    } catch (error) {
+      console.error('Error saving voted elections:', error);
+    }
+  };
+
+  // Fetch user's vote history from backend (better approach)
+  const fetchUserVoteHistory = async () => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/user/vote-history/`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Assuming the API returns an array of election IDs the user has voted in
+        const votedElectionIds = data.voted_elections || [];
+        setVotedElections(new Set(votedElectionIds));
+      } else {
+        // Fallback to localStorage if API fails
+        loadVotedElections();
+      }
+    } catch (error) {
+      console.error('Error fetching vote history:', error);
+      // Fallback to localStorage if API fails
+      loadVotedElections();
+    }
+  };
 
   const fetchElectionData = async () => {
     try {
       setLoading(true);
 
-      //  API call to fetch elections and candidates
       const response = await fetch("http://localhost:8000/api/elections/");
 
       if (!response.ok) {
@@ -54,35 +109,125 @@ const ElectionVotingApp = () => {
     });
   };
 
-  // Test log to make sure component is working
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+    setTimeout(() => setShowErrorModal(false), 5000);
+  };
+
+  const showSuccess = () => {
+    setShowSuccessModal(true);
+    setTimeout(() => setShowSuccessModal(false), 3000);
+  };
+
   console.log('Component rendered, selectedElection:', selectedElection?.name);
 
   const submitVote = async (electionId) => {
     // Get all positions for this election
     const electionCandidates = getElectionCandidates(electionId);
-    const positions = [...new Set(electionCandidates.map(candidate => candidate.position.position_name))];
-    
+    const positions = [...new Set(electionCandidates.map(candidate => candidate.position.id))];
+
     // Check if votes have been made for all positions
     const electionVotes = votes[electionId] || {};
-    const hasVotedForAllPositions = positions.every(positionName => electionVotes[positionName]);
-    
+
+    const hasVotedForAllPositions = positions.every(positionId => electionVotes[positionId]);
+
     if (!hasVotedForAllPositions) {
-      alert('Please select a candidate for each position before voting');
+      showError('Please select a candidate for each position before voting');
       return;
     }
 
+    setSubmittingVote(true);
+
     try {
-      // Simulate API delay for realistic experience
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Get CSRF token if needed
+      if (!Cookies.get("csrftoken")) {
+        await fetch("http://localhost:8000/csrf/", { 
+          method: 'GET',
+          credentials: 'include' 
+        });
+      }
 
-      // Simulate successful vote submission
-      console.log(`Vote submitted for election ${electionId}:`, electionVotes);
+      const payload = {
+        voter_id: voterId,
+        election_id: electionId,
+        votes: positions.map(positionId => {
+          const candidateId = electionVotes[positionId];
+          return {
+            position_id: positionId,
+            candidate_id: candidateId,
+            signature: "signature_placeholder"
+          };
+        })
+      };
 
-      setVotedElections(prev => new Set([...prev, electionId]));
-      setShowSuccessModal(true);
-      setTimeout(() => setShowSuccessModal(false), 3000);
+      console.log("Submitting vote payload:", payload);
+
+      const response = await fetch("http://localhost:8000/api/vote/", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // Parse the response
+      const responseData = await response.json();
+      console.log("Vote submission response:", responseData);
+
+      if (response.ok) {
+        // Success case
+        console.log(`Vote submitted successfully for election ${electionId}`);
+        const newVotedElections = new Set([...votedElections, electionId]);
+        setVotedElections(newVotedElections);
+        saveVotedElections(newVotedElections);
+        showSuccess();
+        
+        // Clear the votes for this election
+        setVotes(prev => {
+          const newVotes = { ...prev };
+          delete newVotes[electionId];
+          return newVotes;
+        });
+      } else {
+        // Error case - handle different types of errors
+        let errorMsg = 'Failed to submit vote. Please try again.';
+        
+        if (response.status === 400) {
+          // Validation errors
+          if (responseData.non_field_errors) {
+            errorMsg = responseData.non_field_errors[0];
+          } else if (responseData.voter_id) {
+            errorMsg = responseData.voter_id[0];
+          } else if (responseData.election_id) {
+            errorMsg = responseData.election_id[0];
+          } else if (responseData.votes) {
+            errorMsg = 'There was an error with your vote selections.';
+          } else {
+            errorMsg = 'Invalid vote data. Please check your selections.';
+          }
+        } else if (response.status === 401) {
+          errorMsg = 'You are not authorized to vote. Please log in again.';
+        } else if (response.status === 403) {
+          errorMsg = 'You do not have permission to vote in this election.';
+        } else if (response.status >= 500) {
+          errorMsg = 'Server error occurred. Please try again later.';
+        }
+        
+        console.error('Vote submission failed:', responseData);
+        showError(errorMsg);
+      }
     } catch (err) {
-      alert('Failed to submit vote. Please try again.');
+      console.error('Network error during vote submission:', err);
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        showError('Network error. Please check your connection and try again.');
+      } else {
+        showError('An unexpected error occurred. Please try again.');
+      }
+    } finally {
+      setSubmittingVote(false);
     }
   };
 
@@ -94,7 +239,6 @@ const ElectionVotingApp = () => {
     });
   };
 
-  // Check if any votes have been made for the current election
   const hasAnyVotes = (electionId) => {
     const electionVotes = votes[electionId];
     return electionVotes && Object.keys(electionVotes).length > 0;
@@ -138,6 +282,23 @@ const ElectionVotingApp = () => {
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">Vote Submitted!</h3>
             <p className="text-gray-600 text-center">Your vote has been recorded successfully.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md mx-4">
+            <XCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-2xl font-bold text-center text-gray-800 mb-2">Vote Failed</h3>
+            <p className="text-gray-600 text-center mb-4">{errorMessage}</p>
+            <button
+              onClick={() => setShowErrorModal(false)}
+              className="w-full bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition-colors"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
@@ -233,15 +394,12 @@ const ElectionVotingApp = () => {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {candidates.map((candidate, index) => {
-                          // Debug the candidate structure
                           console.log('Candidate object:', candidate);
+
+                          const candidateKey = `${candidate.id}`;
+                          const positionKey = candidate.position.id;
+                          console.log('Candidate key:', candidateKey, 'Position key:', positionKey);
                           
-                          // Since there's no id field, we'll use the candidate name + position as unique identifier
-                          // And use position_name as position identifier
-                          const candidateKey = `${candidate.name}_${candidate.position.position_name}`;
-                          const positionKey = candidate.position.position_name;
-                          
-                          // Check if this specific candidate is selected for their position
                           const electionVotes = votes[selectedElection.id];
                           const positionVote = electionVotes?.[positionKey];
                           const isSelected = positionVote !== undefined && positionVote === candidateKey;
@@ -250,14 +408,14 @@ const ElectionVotingApp = () => {
                             <div
                               key={`${candidate.name}_${index}`}
                               className={`border-2 rounded-2xl p-6 transition-all duration-300 cursor-pointer transform hover:scale-105 ${isSelected
-                                  ? 'border-green-500 bg-green-50 shadow-lg'
-                                  : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
+                                ? 'border-green-500 bg-green-50 shadow-lg'
+                                : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                                 }`}
                               onClick={() => {
-                                console.log('Card clicked!', { 
-                                  electionId: selectedElection.id, 
-                                  positionKey: positionKey, 
-                                  candidateKey: candidateKey 
+                                console.log('Card clicked!', {
+                                  electionId: selectedElection.id,
+                                  positionKey: positionKey,
+                                  candidateKey: candidateKey
                                 });
                                 handleVote(selectedElection.id, positionKey, candidateKey);
                               }}
@@ -318,10 +476,10 @@ const ElectionVotingApp = () => {
                   <div className="border-t pt-6">
                     <button
                       onClick={() => submitVote(selectedElection.id)}
-                      disabled={!hasAnyVotes(selectedElection.id) || votedElections.has(selectedElection.id)}
+                      disabled={!hasAnyVotes(selectedElection.id) || votedElections.has(selectedElection.id) || submittingVote}
                       className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${votedElections.has(selectedElection.id)
                         ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                        : hasAnyVotes(selectedElection.id)
+                        : hasAnyVotes(selectedElection.id) && !submittingVote
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
                           : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         }`}
@@ -330,6 +488,11 @@ const ElectionVotingApp = () => {
                         <div className="flex items-center justify-center">
                           <CheckCircle className="h-5 w-5 mr-2" />
                           Vote Submitted
+                        </div>
+                      ) : submittingVote ? (
+                        <div className="flex items-center justify-center">
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Submitting Vote...
                         </div>
                       ) : (
                         <div className="flex items-center justify-center">

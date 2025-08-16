@@ -27,6 +27,7 @@ const VoterLogin = () => {
     if(response.ok){
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
+      sessionStorage.setItem("user_id", data.user_id);
       navigate('/dashboard'); // navigate to the home page after successful login
     } else{
       console.error("Login failed:", data);

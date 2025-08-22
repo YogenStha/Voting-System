@@ -12,6 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from utils.send_mail import send_Voter_ID_mail
 from utils.RSA_key import rsa_keys
 import hashlib
+import base64
 
 class RegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -197,6 +198,7 @@ class singleVoteSerializer(serializers.ModelSerializer):
         
     def validate(self, data):
         try:
+            print(f"signature: {base64.b64decode(data["signature"]).hex()}")
             candidate = Candidate.objects.get(id=data['candidate_id'])
             if not candidate.is_verified:
                 raise serializers.ValidationError("Candidate must be verified to receive votes.")

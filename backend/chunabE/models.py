@@ -3,6 +3,24 @@ from django.contrib.auth.models import AbstractUser
 import random
 import string
 from django.utils.html import mark_safe
+import os
+import environ
+from pathlib import Path
+from cryptography.fernet import Fernet
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+env = environ.Env(
+    DEBUG=(bool, False)
+)
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+MASTER_KEY = env('MASTER_KEY').encode()
+fernet = Fernet(MASTER_KEY)
+
+def encrypt_private_key(private_key):
+    return fernet.encrypt(private_key.encode()).decode()
+
+def decrypt_private_key(encrypted_private_key):
+    return fernet.decrypt(encrypted_private_key.encode()).decode()
 
 def generate_random_voter_id():
     random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=4))
@@ -72,19 +90,49 @@ class Vote(models.Model):
     is_committed = models.BooleanField(default=False)
     signature = models.TextField(blank=True, null=True)
     election = models.ForeignKey('Election', on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = ('voter', 'candidate', 'election')
 
 class BlockTransaction(models.Model):
+    block = models.ForeignKey('Block', on_delete=models.CASCADE)
+    tx_hash = models.CharField(max_length=100, unique=True) # hash of tx content
+    voter_hash = models.CharField(max_length=100, unique=True) # hash of voter public key or id
     candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
-    voter = models.ForeignKey(User, on_delete=models.CASCADE)
+    encrypted_vote = models.TextField()  # Encrypted vote content
+    encrypted_key = models.TextField()  # Encrypted key for the vote
     signature = models.TextField(blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
-    block = models.ForeignKey('Block', on_delete=models.CASCADE)
+    
+    def save(self, *args, **kwargs):
+        if self.block and self.block.finalized:
+            # Prevent modification of transactions in a finalized block
+            raise ValueError("Cannot modify a transaction in a finalized block.")
+        super().save(*args, **kwargs)
+    
 
 class Block(models.Model):
+    index = models.IntegerField(default=0, unique=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     previous_hash = models.CharField(max_length=300, blank=True, null=True)
     nonce = models.IntegerField(default=0)
+    difficulty = models.IntegerField(default=4)
+    merkle_root = models.CharField(max_length=300)
     current_hash = models.CharField(max_length=300, blank=True, null=True)
+    finalized = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ['index']
+    
+    def save(self, *args, **kwargs):
+        if self.pk:
+            original = Block.objects.filter(pk=self.pk).first()
+            
+            if original and original.finalized and (original.current_hash != self.current_hash and original.previous_hash != self.previous_hash):
+                raise ValueError("Cannot modify a finalized block.")
+        
+        super().save(*args, **kwargs)
+        
     
 class Revote(models.Model):
     old_vote_id = models.CharField(max_length=20, unique=True)
@@ -93,12 +141,27 @@ class Revote(models.Model):
     
 class Election(models.Model):
     name = models.CharField(max_length=100)
+    salt = models.CharField(max_length=128, blank=True, null=True)
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     is_active = models.BooleanField(default=False)
+    public_key = models.TextField()
+    private_key = models.TextField()
     
     def __str__(self):
         return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.public_key or not self.private_key:
+            from backend.utils.RSA_key import rsa_keys
+            private_key, public_key = rsa_keys()
+            self.public_key = public_key
+            self.private_key = encrypt_private_key(private_key)
+        
+        super().save(*args, **kwargs)
+    
+    def get_private_key(self):
+        return decrypt_private_key(self.private_key)
 
 class ElectionResult(models.Model):
     election = models.ForeignKey(Election, on_delete=models.CASCADE)

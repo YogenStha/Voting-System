@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircle } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
+import { signMessage } from './hooks/signature';
+
 
 const ElectionVotingApp = () => {
+  const navigate = useNavigate();
   const [elections, setElections] = useState([]);
   const [candidates, setCandidates] = useState([]);
   const [selectedElection, setSelectedElection] = useState(null);
@@ -14,7 +19,11 @@ const ElectionVotingApp = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [submittingVote, setSubmittingVote] = useState(false);
   const [votedElections, setVotedElections] = useState(new Set());
-  const voterId = sessionStorage.getItem("user_id");
+  const [showKeyManagement, setShowKeyManagement] = useState(false);
+  const [hasUserKey, setHasUserKey] = useState(false);
+
+  const voterId = parseInt(sessionStorage.getItem("user_id"), 10);
+  console.log('type of Voter ID from session:', typeof voterId);
 
   useEffect(() => {
     fetchElectionData();
@@ -122,8 +131,41 @@ const ElectionVotingApp = () => {
 
   console.log('Component rendered, selectedElection:', selectedElection?.name);
 
+  useEffect(() => {
+  checkPrivateKeyExists();
+}, [voterId]);
+
+const checkPrivateKeyExists = async () => {
+  if (!voterId) {
+    console.warn('No voter ID found');
+    return;
+  }
+  
+  try {
+    const keyExists = await hasPrivateKey(voterId);
+    console.log(`Private key exists for ${voterId}: ${keyExists}`);
+    setHasUserKey(keyExists);
+    
+    if (!keyExists) {
+      console.warn('No private key found - user should generate one');
+      // Optionally show key management automatically
+      // setShowKeyManagement(true);
+    }
+  } catch (error) {
+    console.error('Error checking private key:', error);
+    setHasUserKey(false);
+  }
+};
+
+
   const submitVote = async (electionId) => {
     // Get all positions for this election
+     if (!hasUserKey) {
+    showError("You need to generate a private key first. Please use the Key Management section.");
+    setShowKeyManagement(true);
+    return;
+  }
+
     const electionCandidates = getElectionCandidates(electionId);
     const positions = [...new Set(electionCandidates.map(candidate => candidate.position.id))];
 
@@ -138,27 +180,71 @@ const ElectionVotingApp = () => {
     }
 
     setSubmittingVote(true);
-
+    let csrfToken;
     try {
       // Get CSRF token if needed
-      if (!Cookies.get("csrftoken")) {
-        await fetch("http://localhost:8000/csrf/", { 
+      if (!Cookies.get("csrfToken")) {
+        const csrf = await fetch("http://localhost:8000/csrf/", {
           method: 'GET',
-          credentials: 'include' 
+          credentials: 'include'
         });
+        const csrf_token = await csrf.json();
+        console.log("csrfToken: ", csrf_token.csrfToken);
+        csrfToken = csrf_token.csrfToken;
+        Cookies.set("csrfToken", csrf_token.csrfToken);
       }
+
+      let privateKeyPem ;
+      try{
+        privateKeyPem = await loadPrivateKey(voterId);
+      console.log('Private key loaded:', privateKeyPem ? 'Success' : 'Failed - null/undefined');
+      } catch (error) {
+      console.error('Error loading private key:', error);
+      showError("Failed to load private key. Please try again.");
+      setSubmittingVote(false);
+      return;
+    }
+      if (!privateKeyPem) {
+         try {
+        const allUserIds = await getAllUserIds();
+        console.log('All user IDs in database:', allUserIds);
+        console.log('Looking for user ID:', voterId);
+      } catch (debugError) {
+        console.error('Debug error:', debugError);
+      }
+      
+      showError("Private key not found. Please make sure you have generated and stored your private key locally.");
+       setShowKeyManagement(true);
+      setHasUserKey(false);
+      setSubmittingVote(false);
+        return;
+      }
+
+      console.log('✅ Private key loaded successfully');
+
+      const votesWithSignatures = await Promise.all(
+        positions.map(async (positionId) => {
+          const candidateId = electionVotes[positionId];
+
+          // Create deterministic message for this vote
+          const message = `${voterId}|${electionId}|${positionId}|${candidateId}`;
+          console.log('Signing message:', message);
+          // Sign the message with voter's private key
+          const signature = await signMessage(privateKeyPem, message);
+
+          return {
+            position_id: positionId,
+            candidate_id: candidateId,
+            signature: signature, // ✅ signed message, not the private key
+          };
+        })
+      );
+
 
       const payload = {
         voter_id: voterId,
         election_id: electionId,
-        votes: positions.map(positionId => {
-          const candidateId = electionVotes[positionId];
-          return {
-            position_id: positionId,
-            candidate_id: candidateId,
-            signature: "signature_placeholder"
-          };
-        })
+        votes: votesWithSignatures,
       };
 
       console.log("Submitting vote payload:", payload);
@@ -169,6 +255,7 @@ const ElectionVotingApp = () => {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
           "Content-Type": "application/json",
+          // "X-CSRFToken": csrfToken,
         },
         body: JSON.stringify(payload)
       });
@@ -184,7 +271,7 @@ const ElectionVotingApp = () => {
         setVotedElections(newVotedElections);
         saveVotedElections(newVotedElections);
         showSuccess();
-        
+
         // Clear the votes for this election
         setVotes(prev => {
           const newVotes = { ...prev };
@@ -194,7 +281,7 @@ const ElectionVotingApp = () => {
       } else {
         // Error case - handle different types of errors
         let errorMsg = 'Failed to submit vote. Please try again.';
-        
+
         if (response.status === 400) {
           // Validation errors
           if (responseData.non_field_errors) {
@@ -210,12 +297,13 @@ const ElectionVotingApp = () => {
           }
         } else if (response.status === 401) {
           errorMsg = 'You are not authorized to vote. Please log in again.';
+          navigate('/login');
         } else if (response.status === 403) {
           errorMsg = 'You do not have permission to vote in this election.';
         } else if (response.status >= 500) {
           errorMsg = 'Server error occurred. Please try again later.';
         }
-        
+
         console.error('Vote submission failed:', responseData);
         showError(errorMsg);
       }
@@ -399,7 +487,7 @@ const ElectionVotingApp = () => {
                           const candidateKey = `${candidate.id}`;
                           const positionKey = candidate.position.id;
                           console.log('Candidate key:', candidateKey, 'Position key:', positionKey);
-                          
+
                           const electionVotes = votes[selectedElection.id];
                           const positionVote = electionVotes?.[positionKey];
                           const isSelected = positionVote !== undefined && positionVote === candidateKey;

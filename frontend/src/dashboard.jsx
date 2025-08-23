@@ -5,6 +5,72 @@ import Cookies from 'js-cookie';
 import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
 import { signMessage } from './hooks/signature';
 
+// Utility functions for encryption and hashing
+const sha256 = async (data) => {
+  const encoder = new TextEncoder();
+  const dataBuffer = typeof data === 'string' ? encoder.encode(data) : data;
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  return new Uint8Array(hashBuffer);
+};
+
+const encryptWithAES = async (key, plaintext) => {
+  const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM needs 12 bytes IV
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    key,
+    { name: 'AES-GCM' },
+    false,
+    ['encrypt']
+  );
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'AES-GCM', iv: iv },
+    cryptoKey,
+    plaintext
+  );
+  
+  // Combine IV and ciphertext
+  const combined = new Uint8Array(iv.length + encrypted.byteLength);
+  combined.set(iv);
+  combined.set(new Uint8Array(encrypted), iv.length);
+  
+  return combined;
+};
+
+const encryptWithRSA = async (publicKeyPem, data) => {
+  // Remove PEM headers and decode base64
+  const pemHeader = "-----BEGIN PUBLIC KEY-----";
+  const pemFooter = "-----END PUBLIC KEY-----";
+  const pemContents = publicKeyPem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
+  const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+  
+  const publicKey = await crypto.subtle.importKey(
+    'spki',
+    keyData,
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256'
+    },
+    false,
+    ['encrypt']
+  );
+  
+  const encrypted = await crypto.subtle.encrypt(
+    { name: 'RSA-OAEP' },
+    publicKey,
+    data
+  );
+  
+  return new Uint8Array(encrypted);
+};
+
+const base64Encode = (uint8Array) => {
+  return btoa(String.fromCharCode(...uint8Array));
+};
+
+const base64Decode = (base64String) => {
+  return Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
+};
 
 const ElectionVotingApp = () => {
   const navigate = useNavigate();
@@ -21,6 +87,7 @@ const ElectionVotingApp = () => {
   const [votedElections, setVotedElections] = useState(new Set());
   const [showKeyManagement, setShowKeyManagement] = useState(false);
   const [hasUserKey, setHasUserKey] = useState(false);
+  const [credentials, setCredentials] = useState({}); // Store credentials per election
 
   const voterId = parseInt(sessionStorage.getItem("user_id"), 10);
   console.log('type of Voter ID from session:', typeof voterId);
@@ -28,7 +95,80 @@ const ElectionVotingApp = () => {
   useEffect(() => {
     fetchElectionData();
     fetchUserVoteHistory();
+    loadCredentials();
   }, []);
+
+  // Load credentials from localStorage
+  const loadCredentials = () => {
+    try {
+      const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
+      if (savedCredentials) {
+        const parsedCredentials = JSON.parse(savedCredentials);
+        setCredentials(parsedCredentials);
+      }
+    } catch (error) {
+      console.error('Error loading credentials:', error);
+    }
+  };
+
+  // Save credentials to localStorage
+  const saveCredentials = (newCredentials) => {
+    try {
+      localStorage.setItem(`credentials_${voterId}`, JSON.stringify(newCredentials));
+      setCredentials(newCredentials);
+    } catch (error) {
+      console.error('Error saving credentials:', error);
+    }
+  };
+
+  // Generate or retrieve credential for an election
+  const getOrCreateCredential = async (electionId) => {
+    // Check if we already have a credential for this election
+    if (credentials[electionId]) {
+      console.log('Using existing credential for election:', electionId);
+      return credentials[electionId];
+    }
+
+    // Generate new credential
+    console.log('Generating new credential for election:', electionId);
+    const S = crypto.getRandomValues(new Uint8Array(32));
+    
+    // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
+    // For now, we'll simulate it or get it from your backend
+    let sigma;
+    try {
+      // Request credential signature from EA
+      const response = await fetch(`http://localhost:8000/api/elections/${electionId}/credential/`, {
+        method: 'POST',
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          serial_number: base64Encode(S)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        sigma = base64Decode(data.signature);
+      } else {
+        throw new Error('Failed to get credential signature from EA');
+      }
+    } catch (error) {
+      console.error('Error getting credential signature:', error);
+      // For development, generate a dummy sigma
+      sigma = crypto.getRandomValues(new Uint8Array(256)); // Dummy signature
+    }
+
+    const credential = { S: Array.from(S), sigma: Array.from(sigma) };
+    
+    // Save the credential
+    const newCredentials = { ...credentials, [electionId]: credential };
+    saveCredentials(newCredentials);
+    
+    return credential;
+  };
 
   // Load voted elections from localStorage on component mount
   const loadVotedElections = () => {
@@ -55,6 +195,8 @@ const ElectionVotingApp = () => {
   // Fetch user's vote history from backend (better approach)
   const fetchUserVoteHistory = async () => {
     try {
+      console.log("Token being sent:", localStorage.getItem("access_token"));
+
       const response = await fetch(`http://localhost:8000/api/user/vote-history/`, {
         method: 'GET',
         credentials: 'include',
@@ -92,6 +234,7 @@ const ElectionVotingApp = () => {
       const data = await response.json();
       setElections(data.elections);
       setCandidates(data.candidates);
+
     } catch (err) {
       setError(err.message);
     } finally {
@@ -132,46 +275,44 @@ const ElectionVotingApp = () => {
   console.log('Component rendered, selectedElection:', selectedElection?.name);
 
   useEffect(() => {
-  checkPrivateKeyExists();
-}, [voterId]);
+    checkPrivateKeyExists();
+  }, [voterId]);
 
-const checkPrivateKeyExists = async () => {
-  if (!voterId) {
-    console.warn('No voter ID found');
-    return;
-  }
-  
-  try {
-    const keyExists = await hasPrivateKey(voterId);
-    console.log(`Private key exists for ${voterId}: ${keyExists}`);
-    setHasUserKey(keyExists);
-    
-    if (!keyExists) {
-      console.warn('No private key found - user should generate one');
-      // Optionally show key management automatically
-      // setShowKeyManagement(true);
+  const checkPrivateKeyExists = async () => {
+    if (!voterId) {
+      console.warn('No voter ID found');
+      return;
     }
-  } catch (error) {
-    console.error('Error checking private key:', error);
-    setHasUserKey(false);
-  }
-};
 
+    try {
+      const keyExists = await hasPrivateKey(voterId);
+      console.log(`Private key exists for ${voterId}: ${keyExists}`);
+      setHasUserKey(keyExists);
+
+      if (!keyExists) {
+        console.warn('No private key found - user should generate one');
+        // Optionally show key management automatically
+        // setShowKeyManagement(true);
+      }
+    } catch (error) {
+      console.error('Error checking private key:', error);
+      setHasUserKey(false);
+    }
+  };
 
   const submitVote = async (electionId) => {
     // Get all positions for this election
-     if (!hasUserKey) {
-    showError("You need to generate a private key first. Please use the Key Management section.");
-    setShowKeyManagement(true);
-    return;
-  }
+    if (!hasUserKey) {
+      showError("You need to generate a private key first. Please use the Key Management section.");
+      setShowKeyManagement(true);
+      return;
+    }
 
     const electionCandidates = getElectionCandidates(electionId);
     const positions = [...new Set(electionCandidates.map(candidate => candidate.position.id))];
 
     // Check if votes have been made for all positions
     const electionVotes = votes[electionId] || {};
-
     const hasVotedForAllPositions = positions.every(positionId => electionVotes[positionId]);
 
     if (!hasVotedForAllPositions) {
@@ -180,71 +321,46 @@ const checkPrivateKeyExists = async () => {
     }
 
     setSubmittingVote(true);
-    let csrfToken;
+    
     try {
-      // Get CSRF token if needed
-      if (!Cookies.get("csrfToken")) {
-        const csrf = await fetch("http://localhost:8000/csrf/", {
-          method: 'GET',
-          credentials: 'include'
-        });
-        const csrf_token = await csrf.json();
-        console.log("csrfToken: ", csrf_token.csrfToken);
-        csrfToken = csrf_token.csrfToken;
-        Cookies.set("csrfToken", csrf_token.csrfToken);
+      // Get or create credential for this election
+      const credential = await getOrCreateCredential(electionId);
+      const S = new Uint8Array(credential.S);
+      const sigma = new Uint8Array(credential.sigma);
+
+      console.log('Using credential S:', S);
+
+      // Find the election to get its public key
+      const election = elections.find(e => e.id === electionId);
+      if (!election || !election.public_key) {
+        throw new Error('Election public key not found');
       }
 
-      let privateKeyPem ;
-      try{
-        privateKeyPem = await loadPrivateKey(voterId);
-      console.log('Private key loaded:', privateKeyPem ? 'Success' : 'Failed - null/undefined');
-      } catch (error) {
-      console.error('Error loading private key:', error);
-      showError("Failed to load private key. Please try again.");
-      setSubmittingVote(false);
-      return;
-    }
-      if (!privateKeyPem) {
-         try {
-        const allUserIds = await getAllUserIds();
-        console.log('All user IDs in database:', allUserIds);
-        console.log('Looking for user ID:', voterId);
-      } catch (debugError) {
-        console.error('Debug error:', debugError);
-      }
-      
-      showError("Private key not found. Please make sure you have generated and stored your private key locally.");
-       setShowKeyManagement(true);
-      setHasUserKey(false);
-      setSubmittingVote(false);
-        return;
-      }
+      // Prepare candidate selections
+      const candidateIds = positions.map(positionId => electionVotes[positionId]);
+      console.log('Selected candidate IDs:', candidateIds);
 
-      console.log('✅ Private key loaded successfully');
+      // Generate AES key for vote encryption
+      const aesKey = crypto.getRandomValues(new Uint8Array(32));
 
-      const votesWithSignatures = await Promise.all(
-        positions.map(async (positionId) => {
-          const candidateId = electionVotes[positionId];
+      // Encrypt the vote data
+      const voteData = new TextEncoder().encode(JSON.stringify({ candidate_ids: candidateIds }));
+      const voteCiphertext = await encryptWithAES(aesKey, voteData);
 
-          // Create deterministic message for this vote
-          const message = `${voterId}|${electionId}|${positionId}|${candidateId}`;
-          console.log('Signing message:', message);
-          // Sign the message with voter's private key
-          const signature = await signMessage(privateKeyPem, message);
+      // Encrypt AES key with election public key
+      const aesKeyWrapped = await encryptWithRSA(election.public_key, aesKey);
 
-          return {
-            position_id: positionId,
-            candidate_id: candidateId,
-            signature: signature, // ✅ signed message, not the private key
-          };
-        })
-      );
+      // Create serial commitment (hash of S)
+      const serialCommitment = await sha256(S);
 
-
+      // Prepare payload according to your backend expectations
       const payload = {
-        voter_id: voterId,
         election_id: electionId,
-        votes: votesWithSignatures,
+        candidate_ciphertext: base64Encode(voteCiphertext),
+        aes_key_wrapped: base64Encode(aesKeyWrapped),
+        credential_sig: base64Encode(sigma),
+        serial_commitment: base64Encode(serialCommitment),
+        timestamp: new Date().toISOString()
       };
 
       console.log("Submitting vote payload:", payload);
@@ -255,7 +371,6 @@ const checkPrivateKeyExists = async () => {
         headers: {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
           "Content-Type": "application/json",
-          // "X-CSRFToken": csrfToken,
         },
         body: JSON.stringify(payload)
       });
@@ -308,11 +423,11 @@ const checkPrivateKeyExists = async () => {
         showError(errorMsg);
       }
     } catch (err) {
-      console.error('Network error during vote submission:', err);
+      console.error('Error during vote submission:', err);
       if (err.name === 'TypeError' && err.message.includes('fetch')) {
         showError('Network error. Please check your connection and try again.');
       } else {
-        showError('An unexpected error occurred. Please try again.');
+        showError(`An error occurred: ${err.message}`);
       }
     } finally {
       setSubmittingVote(false);
@@ -437,6 +552,12 @@ const checkPrivateKeyExists = async () => {
                       <div className="flex items-center text-green-600 text-sm">
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Voted
+                      </div>
+                    )}
+                    {credentials[election.id] && (
+                      <div className="flex items-center text-blue-600 text-xs mt-1">
+                        <User className="h-3 w-3 mr-1" />
+                        Credential Ready
                       </div>
                     )}
                   </button>
@@ -564,20 +685,13 @@ const checkPrivateKeyExists = async () => {
                   <div className="border-t pt-6">
                     <button
                       onClick={() => submitVote(selectedElection.id)}
-                      disabled={!hasAnyVotes(selectedElection.id) || votedElections.has(selectedElection.id) || submittingVote}
-                      className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${votedElections.has(selectedElection.id)
-                        ? 'bg-green-100 text-green-700 cursor-not-allowed'
-                        : hasAnyVotes(selectedElection.id) && !submittingVote
+                      disabled={!hasAnyVotes(selectedElection.id) || submittingVote}
+                      className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${hasAnyVotes(selectedElection.id) && !submittingVote
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
                           : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         }`}
                     >
-                      {votedElections.has(selectedElection.id) ? (
-                        <div className="flex items-center justify-center">
-                          <CheckCircle className="h-5 w-5 mr-2" />
-                          Vote Submitted
-                        </div>
-                      ) : submittingVote ? (
+                      {submittingVote ? (
                         <div className="flex items-center justify-center">
                           <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                           Submitting Vote...
@@ -594,13 +708,6 @@ const checkPrivateKeyExists = async () => {
               </div>
             )}
 
-            {!selectedElection && elections.length === 0 && (
-              <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
-                <AlertCircle className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-2">No Active Elections</h3>
-                <p className="text-gray-500">There are currently no active elections available.</p>
-              </div>
-            )}
 
             {!selectedElection && elections.length > 0 && (
               <div className="bg-white rounded-2xl shadow-xl p-12 text-center">

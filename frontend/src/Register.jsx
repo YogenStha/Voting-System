@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
+import { storePrivateKey } from './hooks/secureDB';
 
 const Register = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
     student_id: '',
+    college: '',
     address: '',
     email: '',
     year: '',
@@ -38,11 +39,27 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        
+        // const S = crypto.getRandomValues(new Uint8Array(32));
+        // localStorage.setItem('S', JSON.stringify(Array.from(S)));
         navigate('/login');
       } else {
         alert("Error: " + JSON.stringify(data));
       }
+     
+    const private_key = data.private_key;
+    const user_id = data.user_id;
+
+        const save_key = async () => {
+          try {
+            await storePrivateKey(user_id, private_key);
+            console.log("Private key stored successfully.");
+          }
+          catch (error) {
+            console.log("Error storing private key:", error);
+            alert("Failed to store private key. Please try again.");
+          }
+        }
+        await save_key();
 
     } catch (error) {
       console.error("Error during registration:", error);
@@ -78,6 +95,18 @@ const Register = () => {
               className="w-full mt-1 p-2 border rounded-xl"
               required
               value={formData.student_id}
+              onChange={handleChange}
+            />
+          </div>
+
+          <div>
+            <label className="block text-gray-700 font-medium">College</label>
+            <input
+              type="text"
+              name="student_id"
+              className="w-full mt-1 p-2 border rounded-xl"
+              required
+              value={formData.college}
               onChange={handleChange}
             />
           </div>

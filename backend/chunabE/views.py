@@ -3,11 +3,15 @@ from django.middleware.csrf import get_token
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils.decorators import method_decorator
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import RegisterSerializer, ElectionSerializer, CandidateSerializer, VoteSubmisionSerializer, UserSerializer, VoteSerializer
-from .models import User, Election, Candidate
+from .serializers import *
+from .models import *
+from django.db import transaction
+from django.shortcuts import get_object_or_404
+from rest_framework import generics
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
@@ -26,12 +30,14 @@ class RegisterView(APIView):
     
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
+        print("request data: ", request.data)
         if serializer.is_valid():
             user = serializer.save()
             
             return Response({
                 "message": "Registration successful",
-                "user_id": user.id
+                "user_id": user.id,
+                "private_key": serializer.extra_data['private_key'],
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
@@ -51,28 +57,317 @@ class ElectionView(APIView):
             return Response({
                 "elections": election_data,
                 "candidates": candidate_data,
-                
+                 
             })
         except Exception as e:
             logger.error("ElectionView error:", exc_info=True)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-@method_decorator(csrf_exempt, name='dispatch')
-class SubmitVoteView(APIView):
-    authentication_classes = [JWTAuthentication]  
-    permission_classes = [IsAuthenticated]
+# @method_decorator(csrf_exempt, name='dispatch')
+# class SubmitVoteView(APIView):
+#     authentication_classes = [JWTAuthentication]  
+#     permission_classes = [IsAuthenticated]
     
-    def post(self, request):
-        serializer = VoteSubmisionSerializer(data=request.data)
-        
-        if serializer.is_valid():
-            votes = serializer.save()
+#     def post(self, request):
+#         serializer = VoteSubmisionSerializer(data=request.data)
+    
+#         if serializer.is_valid():
+#             votes = serializer.save()
             
-            vote_serializer = VoteSerializer(votes, many=True)
+#             vote_serializer = VoteSerializer(votes, many=True)
+#             return Response({
+#                 "message": "Vote submitted successfully",
+#                 "votes": vote_serializer.data
+#             }, status=status.HTTP_201_CREATED)
+#         else:
+#             print("Validation errors:", serializer.errors)
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+# class ElectionListView(generics.ListAPIView):
+#     """List all active elections with candidates"""
+    
+#     def get(self, request, *args, **kwargs):
+#         try:
+#             # Get active elections
+#             elections = Election.objects.filter(
+#                 is_active=True,
+#                 start_date__lte=timezone.now(),
+#                 end_date__gte=timezone.now()
+#             ).prefetch_related('candidates__party', 'candidates__position')
+            
+#             # Get candidates for these elections
+#             candidates = Candidate.objects.filter(
+#                 election__in=elections
+#             ).select_related('party', 'position')
+            
+#             election_serializer = ElectionListSerializer(elections, many=True)
+#             candidate_serializer = CandidateSerializer(candidates, many=True)
+            
+#             return Response({
+#                 'elections': election_serializer.data,
+#                 'candidates': candidate_serializer.data
+#             })
+            
+#         except Exception as e:
+#             logger.error(f"Error fetching elections: {str(e)}")
+#             return Response(
+#                 {'error': 'Failed to fetch elections'}, 
+#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
+
+class CredentialIssueView(generics.CreateAPIView):
+    """Issue voting credential for a user and election"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = CredentialRequestSerializer
+    
+    def post(self, request, *args, **kwargs):
+        print("User:", request.user)
+        print("Is authenticated:", request.user.is_authenticated)
+        print("Auth header:", request.META.get("HTTP_AUTHORIZATION"))
+        return super().post(request, *args, **kwargs)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['election_id'] = self.kwargs['pk']  # from URL
+        return context
+    
+    def create(self, request, election_id):
+        try:
+            election = get_object_or_404(Election, id=election_id, is_active=True)
+            
+            # Check if user is eligible for this election
+            try:
+                eligibility = Eligibility.objects.get(user=request.user, election=election)
+                if eligibility.issued:
+                    # Return existing credential
+                    existing_credential, create = VoterCredential.objects.get_or_create(
+                        user=request.user,
+                        election=election
+                    )
+                    return Response({
+                        'signature': existing_credential.signature
+                    })
+            except Eligibility.DoesNotExist:
+                return Response(
+                    {'error': 'You are not eligible to vote in this election'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            
+            serial_number_b64 = serializer.validated_data['serial_number']
+            serial_number_bytes = base64.b64decode(serial_number_b64)
+            
+            # Create hash of serial number for storage
+            serial_hash = hashlib.sha256(serial_number_bytes).hexdigest()
+            
+            # Create credential signature using election's private key
+            # In production, this would be done by Election Authority
+            election_private_key = election.get_private_key()
+            
+            # Create signature data
+            signature_data = f"CREDENTIAL_{request.user.id}_{election.id}_{serial_hash}_{timezone.now().isoformat()}"
+            signature_bytes = signature_data.encode('utf-8')
+            
+            # For demo purposes, we'll create a simple signature
+            # In production, use proper cryptographic signing
+            signature_hash = hashlib.sha256(signature_bytes).hexdigest()
+            signature_b64 = base64.b64encode(signature_hash.encode()).decode('utf-8')
+            
+            # Store credential
+            credential, created = VoterCredential.objects.get_or_create(
+                user=request.user,
+                election=election,
+                defaults={
+                    'serial_number_hash': serial_hash,
+                    'signature': signature_b64
+                }
+            )
+            
+            # Mark as issued in eligibility
+            eligibility.issued = True
+            eligibility.save()
+            
             return Response({
-                "message": "Vote submitted successfully",
-                "votes": vote_serializer.data
-            }, status=status.HTTP_201_CREATED)
-        else:
-            print("Validation errors:", serializer.errors)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                'signature': credential.signature
+            })
+            
+        except Exception as e:
+            logger.error(f"Error issuing credential: {str(e)}")
+            return Response(
+                {'error': 'Failed to issue credential'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class AnonymousVoteView(generics.CreateAPIView):
+    """Submit anonymous vote"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = AnonymousVoteSerializer
+    
+    def create(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                serializer = self.get_serializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                
+                # Validate credential signature
+                election_id = serializer.validated_data['election_id']
+                credential_sig = serializer.validated_data['credential_sig']
+                serial_commitment = serializer.validated_data['serial_commitment']
+                
+                # Decode serial commitment to validate format
+                try:
+                    serial_commitment_bytes = base64.b64decode(serial_commitment)
+                    if len(serial_commitment_bytes) != 32:  # SHA256 hash should be 32 bytes
+                        return Response(
+                            {'error': 'Invalid serial commitment format'}, 
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                except Exception:
+                    return Response(
+                        {'error': 'Invalid serial commitment encoding'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # TODO: In production, verify credential signature using EA public key
+                # For now, we'll do basic validation against stored credentials
+                
+                # Create the vote
+                vote = serializer.save()
+                
+                # Update vote history for the authenticated user
+                # This is for UI purposes and doesn't compromise anonymity
+                vote_history, created = VoteHistory.objects.get_or_create(
+                    user=request.user,
+                    election_id=election_id,
+                    defaults={'vote_count': 1}
+                )
+                
+                if not created:
+                    vote_history.vote_count += 1
+                    vote_history.voted_at = timezone.now()
+                    vote_history.save()
+                
+                logger.info(f"Anonymous vote submitted for election {election_id}")
+                
+                return Response(
+                    {'message': 'Vote submitted successfully'}, 
+                    status=status.HTTP_201_CREATED
+                )
+                
+        except Exception as e:
+            logger.error(f"Error submitting vote: {str(e)}")
+            return Response(
+                {'error': f'Failed to submit vote: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class UserVoteHistoryView(generics.RetrieveAPIView):
+    """Get user's voting history for UI purposes"""
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserVoteHistorySerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            # Check if VoteHistory model exists and has data
+            if not hasattr(self, '_vote_history_checked'):
+                # First time accessing, check if table exists
+                from django.db import connection
+                tables = connection.introspection.table_names()
+                if 'your_app_name_votehistory' not in tables:  # Replace with your actual app name
+                    # Table doesn't exist yet, return empty result
+                    return Response({
+                        'voted_elections': []
+                    })
+                self._vote_history_checked = True
+            
+            # Get vote histories for this user
+            vote_histories = VoteHistory.objects.filter(
+                user=request.user
+            ).values_list('election_id', flat=True)
+            
+            voted_elections = list(vote_histories)
+            
+            return Response({
+                'voted_elections': voted_elections
+            })
+            
+        except Exception as e:
+            logger.error(f"Error fetching vote history: {str(e)}")
+            # Return JSON error response instead of letting Django handle it
+            return Response(
+                {
+                    'error': 'Failed to fetch vote history',
+                    'detail': str(e),
+                    'voted_elections': []  # Provide default empty list
+                }, 
+                status=status.HTTP_200_OK  # Return 200 with error info instead of 500
+            )
+
+@api_view(['GET'])
+def csrf_token_view(request):
+    """Get CSRF token if needed"""
+    from django.middleware.csrf import get_token
+    csrf_token = get_token(request)
+    return Response({'csrfToken': csrf_token})
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def decrypt_votes_view(request, election_id):
+    """
+    Decrypt votes for an election (for tallying)
+    This would typically be called by election officials
+    """
+    try:
+        election = get_object_or_404(Election, id=election_id)
+        
+        # Get all votes for this election
+        # If you add is_latest field, filter by that: Vote.objects.filter(election=election, is_latest=True)
+        votes = Vote.objects.filter(election=election)
+        
+        # In production, you would decrypt using the election's private key
+        # and return tallied results
+        
+        vote_count = votes.count()
+        
+        return Response({
+            'election': election.name,
+            'total_votes': vote_count,
+            'message': 'Vote decryption would happen here in production'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error decrypting votes: {str(e)}")
+        return Response(
+            {'error': 'Failed to decrypt votes'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_eligibility_view(request):
+    """Get user's election eligibilities"""
+    try:
+        eligibilities = Eligibility.objects.filter(
+            user=request.user
+        ).select_related('election')
+        
+        eligible_elections = []
+        for eligibility in eligibilities:
+            eligible_elections.append({
+                'election_id': eligibility.election.id,
+                'election_name': eligibility.election.name,
+                'credential_issued': eligibility.issued
+            })
+        
+        return Response({
+            'eligible_elections': eligible_elections
+        })
+        
+    except Exception as e:
+        logger.error(f"Error fetching eligibility: {str(e)}")
+        return Response(
+            {'error': 'Failed to fetch eligibility'}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

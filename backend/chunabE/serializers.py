@@ -2,7 +2,7 @@ import threading
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import User, Candidate, Election, Party, Position, Vote
+from .models import User, Candidate, Election, Party, Position, Vote, VoteHistory, Eligibility
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
@@ -13,6 +13,8 @@ from utils.send_mail import send_Voter_ID_mail
 from utils.RSA_key import rsa_keys
 import hashlib
 import base64
+from django.utils import timezone
+
 
 class RegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -76,16 +78,38 @@ class RegisterSerializer(serializers.ModelSerializer):
         if password != confirm_password:
             raise serializers.ValidationError("Passwords do not match.")
         validate_password(password)
+        print("password valid")
         return data
 
     def create(self, validated_data):
-        validated_data.pop('confirmPassword') 
-        # user_data = validated_data.copy()
-        # temp_user = User(**user_data)
-        user = User.objects.create_user(**validated_data)
-        user.save()
-        send_Voter_ID_mail(user.email, user.username, user.voter_id)
-        return user
+        try:
+            validated_data.pop('confirmPassword') 
+            # user_data = validated_data.copy()
+            # temp_user = User(**user_data)
+            
+            print("hi")
+            user = User.objects.create_user(**validated_data)
+            print("user created")
+            private_key_pem, public_key_pem, fingerprint = rsa_keys()
+            user.public_key = public_key_pem
+            user.fingerprint = fingerprint
+            user.save()
+            print("keys saved")
+            threading.Thread(target=send_Voter_ID_mail, args=(user.email, user.username, user.voter_id))
+            
+            self.extra_data = {
+                "private_key": private_key_pem,
+                "public_key": public_key_pem,
+                "fingerprint": fingerprint,
+                "user_id": user.id
+            }
+            
+            return user
+        except Exception:
+            import traceback
+            print("Error in user creation")
+            traceback.print_exc()
+            raise
 
 class UserTokenSerializer(TokenObtainPairSerializer):
     
@@ -105,16 +129,14 @@ class UserTokenSerializer(TokenObtainPairSerializer):
         attrs["username"] = user.username
         self.user = user
         
-        private_key_pem, public_key_pem, fingerprint = rsa_keys()
-        user.public_key = public_key_pem
-        user.fingerprint = fingerprint
-        user.save()
+        # private_key_pem, public_key_pem, fingerprint = rsa_keys()
+        # user.public_key = public_key_pem
+        # user.fingerprint = fingerprint
+        
         
         data = super().validate(attrs)
         data.update({
             "user_id": user.id,
-            "private_key": private_key_pem,
-            "fingerprint": fingerprint
         })
         return data
 
@@ -155,7 +177,7 @@ class ElectionSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Election
-        fields = ['id', 'name', 'start_date', 'end_date', 'is_active', 'candidates']
+        fields = ['id', 'name', 'start_date', 'end_date', 'is_active', 'candidates', 'public_key']
     
     def validate(self, data):
         if data['start_date'] >= data['end_date']:
@@ -270,3 +292,134 @@ class UserSerializer(serializers.ModelSerializer):
         if not data.get('email'):
             raise serializers.ValidationError("Email is required.")
         return data
+    
+class ElectionListSerializer(serializers.ModelSerializer):
+    """Simplified election serializer for list view"""
+    class Meta:
+        model = Election
+        fields = [
+            'id', 'name', 'start_date', 'end_date', 
+            'is_active', 'public_key'
+        ]
+
+class CredentialRequestSerializer(serializers.Serializer):
+    serial_number = serializers.CharField()
+    
+    def validate_serial_number(self, value):
+        try:
+            # Decode base64 serial number
+            serial_bytes = base64.b64decode(value)
+            if len(serial_bytes) != 32:  # Should be 32 bytes
+                raise serializers.ValidationError("Invalid serial number length")
+            return value
+        except Exception:
+            raise serializers.ValidationError("Invalid serial number format")
+    def validate(self, data):
+        request = self.context['request']
+        user = request.user
+        election_id = self.context['election_id']  # provided by view
+
+        # Check eligibility
+        try:
+            eligibility = Eligibility.objects.get(election_id=election_id, user=user)
+        except Eligibility.DoesNotExist:
+            raise serializers.ValidationError("You are not eligible for this election.")
+
+        if eligibility.issued:
+            raise serializers.ValidationError("Credential already issued for this election.")
+
+        data['eligibility'] = eligibility
+        return data
+    
+    def create(self, validated_data):
+        eligibility = validated_data['eligibility']
+        serial_number = validated_data['serial_number']
+        user = self.context['request'].user
+        election_id = self.context['election_id']
+
+        # ✅ Mark eligibility as issued
+        eligibility.issued = True
+        eligibility.save()
+
+        # TODO: generate & return credential object (depends on your model)
+        return {
+            "user": user.username,
+            "election": election_id,
+            "serial_number": serial_number,
+            "message": "Credential issued successfully"
+        }
+    
+
+class CredentialResponseSerializer(serializers.Serializer):
+    signature = serializers.CharField()
+
+class AnonymousVoteSerializer(serializers.Serializer):
+    election_id = serializers.IntegerField()
+    candidate_ciphertext = serializers.CharField()  # Base64 encoded
+    aes_key_wrapped = serializers.CharField()       # Base64 encoded
+    credential_sig = serializers.CharField()        # Base64 encoded
+    serial_commitment = serializers.CharField()     # Base64 encoded
+    timestamp = serializers.DateTimeField()
+
+    def validate(self, data):
+        # Validate election exists and is active
+        try:
+            election = Election.objects.get(id=data['election_id'], is_active=True)
+            current_time = timezone.now()
+            
+            if current_time < election.start_date:
+                raise serializers.ValidationError("Election has not started yet")
+            if current_time > election.end_date:
+                raise serializers.ValidationError("Election has ended")
+                
+        except Election.DoesNotExist:
+            raise serializers.ValidationError("Invalid election ID")
+
+        # Validate base64 encoded fields
+        for field in ['candidate_ciphertext', 'aes_key_wrapped', 'credential_sig', 'serial_commitment']:
+            try:
+                base64.b64decode(data[field])
+            except Exception:
+                raise serializers.ValidationError(f"Invalid base64 encoding for {field}")
+
+        return data
+
+    def create(self, validated_data):
+        election_id = validated_data['election_id']
+        election = Election.objects.get(id=election_id)
+        
+        # Convert base64 strings to binary for storage
+        candidate_ciphertext = base64.b64decode(validated_data['candidate_ciphertext'])
+        aes_key_wrapped = base64.b64decode(validated_data['aes_key_wrapped'])
+        credential_sig = base64.b64decode(validated_data['credential_sig'])
+        serial_commitment = validated_data['serial_commitment']
+        
+        # Handle revoting - mark previous votes as not latest (if you add is_latest field)
+        # Vote.objects.filter(
+        #     election=election,
+        #     serial_commitment=serial_commitment
+        # ).update(is_latest=False)
+        
+        # Create new vote
+        vote = Vote.objects.create(
+            election=election,
+            candidate_ciphertext=candidate_ciphertext,
+            aes_key_wrapped=aes_key_wrapped,
+            credential_sig=credential_sig,
+            serial_commitment=serial_commitment,
+            timestamp=validated_data['timestamp']
+            # is_latest=True  # Add this if you add the field
+        )
+        
+        return vote
+
+class VoteHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = VoteHistory
+        fields = ['election', 'voted_at', 'vote_count']
+
+class UserVoteHistorySerializer(serializers.Serializer):
+    voted_elections = serializers.ListField(
+        child=serializers.IntegerField(),
+        read_only=True
+    )

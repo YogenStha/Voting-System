@@ -33,22 +33,6 @@ const VoterLogin = () => {
       console.error("Login failed:", data);
       alert("Invalid Voter ID or Password");
     }
-
-    const private_key = data.private_key;
-    const user_id = data.user_id;
-
-        const save_key = async () => {
-          try {
-            await storePrivateKey(user_id, private_key);
-            console.log("Private key stored successfully.");
-          }
-          catch (error) {
-            console.log("Error storing private key:", error);
-            alert("Failed to store private key. Please try again.");
-          }
-        }
-        await save_key();
-    
   };
 
   return (

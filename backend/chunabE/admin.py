@@ -17,14 +17,14 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
     add_form = UserCreationForm
     change_password_form = AdminPasswordChangeForm
     
-    list_display = ('username', 'email', 'contact_number', 'address', 'student_id', 'faculty', 'year', 'voter_id', 'public_key', 'fingerprint')
+    list_display = ('username', 'email', 'contact_number', 'address', 'student_id', 'faculty', 'year', 'voter_id', 'public_key', 'fingerprint', 'college')
     search_fields = ('username', 'email', 'contact_number')
     list_filter = ('is_superuser', 'is_active')
     readonly_fields = ('voter_id', 'public_key', 'fingerprint')
     
     fieldsets = (
         ('Account Info', {
-            'fields': ('username', 'email', 'contact_number', 'address', 'student_id', 'faculty', 'year'),
+            'fields': ('username', 'email', 'contact_number', 'address', 'student_id', 'faculty', 'year', 'college'),
             'classes': ('tab-account',)
         }),
         ('Permissions', {

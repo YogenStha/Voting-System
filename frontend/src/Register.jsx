@@ -39,8 +39,7 @@ const Register = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // const S = crypto.getRandomValues(new Uint8Array(32));
-        // localStorage.setItem('S', JSON.stringify(Array.from(S)));
+       
         navigate('/login');
       } else {
         alert("Error: " + JSON.stringify(data));

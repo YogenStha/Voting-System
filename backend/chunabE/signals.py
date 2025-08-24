@@ -20,10 +20,10 @@ def populate_eligibility(sender, instance, created, **kwargs):
         print(instance)
         users = User.objects.filter(college = instance.name)
         for user in users:
-            Eligibility.objects.get_or_create(election = instance, user = user, issued = True)
+            Eligibility.objects.get_or_create(election = instance, user = user)
 
 @receiver(post_save, sender=User)
 def populate_eligibility_for_elections(sender, instance, created, **kwargs):
     if created:
         for election in Election.objects.all():
-            Eligibility.objects.get_or_create(election=election, user=instance, issued=True)
+            Eligibility.objects.get_or_create(election=election, user=instance)

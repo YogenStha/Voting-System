@@ -86,6 +86,7 @@ class Position(models.Model):
     
 class Vote(models.Model):
     election = models.ForeignKey('Election', on_delete=models.CASCADE, db_index=True)
+    voter_credential = models.ForeignKey('VoterCredential', on_delete=models.CASCADE)
     candidate_ciphertext = models.BinaryField()       # AES-encrypted ballot
     aes_key_wrapped = models.BinaryField()            # AES key encrypted with election RSA
     credential_sig = models.BinaryField()             # EA signature over credential serial
@@ -153,11 +154,34 @@ class Election(models.Model):
             self.public_key = public_key
             self.private_key = encrypt_private_key(private_key)
             
-       
+        new_election = self.pk is None
+        if new_election:
+            users = User.objects.filter(college = self.name)
+            for user in users:
+                Eligibility.objects.get_or_create(election = self, user = user, issued = True)
         super().save(*args, **kwargs)
     
     def get_private_key(self):
         return decrypt_private_key(self.private_key)
+    
+    def sign_S(self, S):
+        from cryptography.hazmat.primitives.asymmetric import padding
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.backends import default_backend 
+        
+        private_key_pem = self.get_private_key()
+        
+        private_key = serialization.load_pem_private_key(
+            private_key_pem.encode('utf-8'),
+            password=None,
+            backend=default_backend())
+        
+        signature = private_key.sign(S, padding.PSS(
+                        mgf=padding.MGF1(hashes.SHA256()),
+                        salt_length=padding.PSS.MAX_LENGTH
+                                        ),
+                            hashes.SHA256())
+        return signature
 
 class ElectionResult(models.Model):
     election = models.ForeignKey(Election, on_delete=models.CASCADE)
@@ -178,10 +202,10 @@ class VoterCredential(models.Model):
     """Store issued credentials for voters"""
     user = models.ForeignKey('User', on_delete=models.CASCADE)
     election = models.ForeignKey('Election', on_delete=models.CASCADE)
-    serial_number_hash = models.CharField(max_length=64)  # SHA256 hash of serial number
-    signature = models.TextField()  # EA signature over serial number
+    serial_number_hash = models.CharField(max_length=100, null=True)  # SHA256 hash of serial number
+    signature = models.TextField(null=True)  # EA signature over serial number
     issued_at = models.DateTimeField(auto_now_add=True)
-    is_used = models.BooleanField(default=False)
+   
 
     class Meta:
         unique_together = ['user', 'election']

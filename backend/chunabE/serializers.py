@@ -2,7 +2,7 @@ import threading
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import User, Candidate, Election, Party, Position, Vote, VoteHistory, Eligibility
+from .models import User, Candidate, Election, Party, Position, Vote, VoteHistory, Eligibility, VoterCredential
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
@@ -314,6 +314,7 @@ class CredentialRequestSerializer(serializers.Serializer):
             return value
         except Exception:
             raise serializers.ValidationError("Invalid serial number format")
+        
     def validate(self, data):
         request = self.context['request']
         user = request.user
@@ -330,31 +331,14 @@ class CredentialRequestSerializer(serializers.Serializer):
 
         data['eligibility'] = eligibility
         return data
-    
-    def create(self, validated_data):
-        eligibility = validated_data['eligibility']
-        serial_number = validated_data['serial_number']
-        user = self.context['request'].user
-        election_id = self.context['election_id']
 
-        # ✅ Mark eligibility as issued
-        eligibility.issued = True
-        eligibility.save()
-
-        # TODO: generate & return credential object (depends on your model)
-        return {
-            "user": user.username,
-            "election": election_id,
-            "serial_number": serial_number,
-            "message": "Credential issued successfully"
-        }
-    
 
 class CredentialResponseSerializer(serializers.Serializer):
     signature = serializers.CharField()
 
 class AnonymousVoteSerializer(serializers.Serializer):
     election_id = serializers.IntegerField()
+    voter_credential_id = serializers.IntegerField()
     candidate_ciphertext = serializers.CharField()  # Base64 encoded
     aes_key_wrapped = serializers.CharField()       # Base64 encoded
     credential_sig = serializers.CharField()        # Base64 encoded
@@ -387,7 +371,7 @@ class AnonymousVoteSerializer(serializers.Serializer):
     def create(self, validated_data):
         election_id = validated_data['election_id']
         election = Election.objects.get(id=election_id)
-        
+        voter_credential = VoterCredential.objects.get(id=validated_data['voter_credential_id'])
         # Convert base64 strings to binary for storage
         candidate_ciphertext = base64.b64decode(validated_data['candidate_ciphertext'])
         aes_key_wrapped = base64.b64decode(validated_data['aes_key_wrapped'])
@@ -403,6 +387,7 @@ class AnonymousVoteSerializer(serializers.Serializer):
         # Create new vote
         vote = Vote.objects.create(
             election=election,
+            voter_credential = voter_credential,
             candidate_ciphertext=candidate_ciphertext,
             aes_key_wrapped=aes_key_wrapped,
             credential_sig=credential_sig,

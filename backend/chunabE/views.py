@@ -124,81 +124,63 @@ class CredentialIssueView(generics.CreateAPIView):
         print("User:", request.user)
         print("Is authenticated:", request.user.is_authenticated)
         print("Auth header:", request.META.get("HTTP_AUTHORIZATION"))
-        return super().post(request, *args, **kwargs)
+        print("Request data:", request.data)
+        
+        S_base64 = request.data.get('serial_number')
+        S = base64.b64decode(S_base64)
+        print("Decoded S:", S)
+        user = request.user
+        election_id = request.data.get('election_id')
+        
+        if not S or not election_id:
+            return Response({'error': 'Missing serial number or election ID'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        election = Election.objects.filter(id=election_id).first()
+        
+        if not election:
+            return Response({'error': 'Invalid election ID'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        eligibility = Eligibility.objects.filter(user=user, election=election).first()
+        if not eligibility:
+            return Response({'error': 'You are not eligible to vote in this election'}, status=status.HTTP_403_FORBIDDEN)
+        
+        if eligibility.issued:
+            existing_credential = VoterCredential.objects.filter(user=user, election=election).first()
+            
+            if existing_credential:
+                voter_credential_id = existing_credential.id
+                return Response({
+                    'message': 'Credential already issued',
+                    'signature': existing_credential.signature,
+                    'serial_number_hash': existing_credential.serial_number_hash,
+                    'voter_credential_id': voter_credential_id
+                }, status=status.HTTP_200_OK)
+                
+        signature = election.sign_S(S) 
+        
+        S_hash = hashlib.sha256(S).hexdigest()
+        signature_b64 = base64.b64encode(signature).decode()
+        
+        # store credential
+        credential, created = VoterCredential.objects.get_or_create(
+            user=user,
+            election=election,
+            serial_number_hash=S_hash,
+            signature=signature_b64)
+        
+        eligibility.issued = True
+        eligibility.save()
+        print("voter credential id: ", credential.id)
+        print("voter credential created successfully")
+        return Response({
+            'signature': credential.signature,
+            'serial_number_b64': S_base64,
+            'serial_number_hash': credential.serial_number_hash,
+            'voter_credential_id': credential.id
+            
+        }, status=status.HTTP_201_CREATED)
+       
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['election_id'] = self.kwargs['pk']  # from URL
-        return context
-    
-    def create(self, request, election_id):
-        try:
-            election = get_object_or_404(Election, id=election_id, is_active=True)
-            
-            # Check if user is eligible for this election
-            try:
-                eligibility = Eligibility.objects.get(user=request.user, election=election)
-                if eligibility.issued:
-                    # Return existing credential
-                    existing_credential, create = VoterCredential.objects.get_or_create(
-                        user=request.user,
-                        election=election
-                    )
-                    return Response({
-                        'signature': existing_credential.signature
-                    })
-            except Eligibility.DoesNotExist:
-                return Response(
-                    {'error': 'You are not eligible to vote in this election'}, 
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            serializer = self.get_serializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
-            
-            serial_number_b64 = serializer.validated_data['serial_number']
-            serial_number_bytes = base64.b64decode(serial_number_b64)
-            
-            # Create hash of serial number for storage
-            serial_hash = hashlib.sha256(serial_number_bytes).hexdigest()
-            
-            # Create credential signature using election's private key
-            # In production, this would be done by Election Authority
-            election_private_key = election.get_private_key()
-            
-            # Create signature data
-            signature_data = f"CREDENTIAL_{request.user.id}_{election.id}_{serial_hash}_{timezone.now().isoformat()}"
-            signature_bytes = signature_data.encode('utf-8')
-            
-            # For demo purposes, we'll create a simple signature
-            # In production, use proper cryptographic signing
-            signature_hash = hashlib.sha256(signature_bytes).hexdigest()
-            signature_b64 = base64.b64encode(signature_hash.encode()).decode('utf-8')
-            
-            # Store credential
-            credential, created = VoterCredential.objects.get_or_create(
-                user=request.user,
-                election=election,
-                defaults={
-                    'serial_number_hash': serial_hash,
-                    'signature': signature_b64
-                }
-            )
-            
-            # Mark as issued in eligibility
-            eligibility.issued = True
-            eligibility.save()
-            
-            return Response({
-                'signature': credential.signature
-            })
-            
-        except Exception as e:
-            logger.error(f"Error issuing credential: {str(e)}")
-            return Response(
-                {'error': 'Failed to issue credential'}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
 
 class AnonymousVoteView(generics.CreateAPIView):
     """Submit anonymous vote"""

@@ -131,11 +131,13 @@ const ElectionVotingApp = () => {
 
     // Generate new credential
     console.log('Generating new credential for election:', electionId);
-    const S = crypto.getRandomValues(new Uint8Array(32));
-    
+    const S_array = JSON.parse(localStorage.getItem('S'));
+    const S = new Uint8Array(S_array);
+    console.log("S value in dashboard:", S_array);
     // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
     // For now, we'll simulate it or get it from your backend
     let sigma;
+    let voter_credential;
     try {
       // Request credential signature from EA
       const response = await fetch(`http://localhost:8000/api/elections/${electionId}/credential/`, {
@@ -145,13 +147,17 @@ const ElectionVotingApp = () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          serial_number: base64Encode(S)
+          election_id: electionId,
+          serial_number: btoa(String.fromCharCode(...S))
         })
       });
 
       if (response.ok) {
         const data = await response.json();
+        console.log("Received credential data from EA:", data);
         sigma = base64Decode(data.signature);
+        voter_credential = data.voter_credential_id;
+        console.log("received voter credential id: ", voter_credential);
       } else {
         throw new Error('Failed to get credential signature from EA');
       }
@@ -161,7 +167,7 @@ const ElectionVotingApp = () => {
       sigma = crypto.getRandomValues(new Uint8Array(256)); // Dummy signature
     }
 
-    const credential = { S: Array.from(S), sigma: Array.from(sigma) };
+    const credential = { S: Array.from(S), sigma: Array.from(sigma), voter_credential_id: voter_credential };
     
     // Save the credential
     const newCredentials = { ...credentials, [electionId]: credential };
@@ -327,8 +333,10 @@ const ElectionVotingApp = () => {
       const credential = await getOrCreateCredential(electionId);
       const S = new Uint8Array(credential.S);
       const sigma = new Uint8Array(credential.sigma);
-
+      const voter_credential = credential.voter_credential_id;
       console.log('Using credential S:', S);
+      console.log("voter credential id: ", voter_credential);
+      console.log('Using credential sigma:', sigma);
 
       // Find the election to get its public key
       const election = elections.find(e => e.id === electionId);
@@ -356,6 +364,7 @@ const ElectionVotingApp = () => {
       // Prepare payload according to your backend expectations
       const payload = {
         election_id: electionId,
+        voter_credential_id: voter_credential,
         candidate_ciphertext: base64Encode(voteCiphertext),
         aes_key_wrapped: base64Encode(aesKeyWrapped),
         credential_sig: base64Encode(sigma),

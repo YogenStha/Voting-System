@@ -3,14 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { storePrivateKey } from './hooks/secureDB';
 
 const VoterLogin = () => {
-  const navigate= useNavigate();
+  const navigate = useNavigate();
   const [voterId, setVoterId] = useState('');
   const [password, setPassword] = useState('');
 
   const handleSubmit = async (e) => {
-    
+
     e.preventDefault();
-    
+
     const response = await fetch("http://localhost:8000/api/login/", {
       method: "POST",
       headers: {
@@ -24,12 +24,16 @@ const VoterLogin = () => {
 
     const data = await response.json();
 
-    if(response.ok){
+    if (response.ok) {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
       sessionStorage.setItem("user_id", data.user_id);
+      const S = crypto.getRandomValues(new Uint8Array(32));
+      localStorage.setItem('S', JSON.stringify(Array.from(S)));
+
+      console.log("S value: ", S);
       navigate('/dashboard'); // navigate to the home page after successful login
-    } else{
+    } else {
       console.error("Login failed:", data);
       alert("Invalid Voter ID or Password");
     }

@@ -176,10 +176,7 @@ class Election(models.Model):
             password=None,
             backend=default_backend())
         
-        signature = private_key.sign(S, padding.PSS(
-                        mgf=padding.MGF1(hashes.SHA256()),
-                        salt_length=padding.PSS.MAX_LENGTH
-                                        ),
+        signature = private_key.sign(S, padding.PKCS1v15(), 
                             hashes.SHA256())
         return signature
 

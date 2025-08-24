@@ -12,9 +12,59 @@
 
 import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './secureDB';
 
+function base64ToBytes(b64) {
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+}
+
+function pemToSpkiBytes(pem) {
+  const body = pem.replace(/-----BEGIN PUBLIC KEY-----/, '')
+                  .replace(/-----END PUBLIC KEY-----/, '')
+                  .replace(/\s+/g, '');
+  return Uint8Array.from(atob(body), c => c.charCodeAt(0));
+}
+
+export const getPrivateKey = async (voterId) => {
+  try {
+    // Load your PEM string from localStorage or your backend
+    const pem = await loadPrivateKey(voterId);
+    console.log("Private key (during load): ", pem);
+    if (!pem) throw new Error("Private key not found in storage");
+
+    // Remove header/footer and line breaks
+    const pemHeader = "-----BEGIN PRIVATE KEY-----";
+    const pemFooter = "-----END PRIVATE KEY-----";
+    const pemContents = pem
+      .replace(pemHeader, "")
+      .replace(pemFooter, "")
+      .replace(/\s/g, "");
+
+    // Decode base64 to ArrayBuffer
+    const binaryDer = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+
+    // Import key using SubtleCrypto
+    const privateKey = await crypto.subtle.importKey(
+      "pkcs8",                  // PKCS#8 format for private keys
+      binaryDer.buffer,
+      {
+        name: "RSASSA-PKCS1-v1_5",
+        hash: "SHA-256",
+      },
+      false,                    // Not extractable
+      ["sign"]                  // Allowed operation
+    );
+
+    return privateKey;
+  } catch (error) {
+    console.error("Failed to import private key:", error);
+    return null;
+  }
+};
+
+
 export const signMessage = async (message, voterId) => {
   try {
-    const privateKey = await loadPrivateKey(voterId); // Your existing backend function
+    const privateKey = await getPrivateKey(voterId); // Your existing backend function
+    console.log("Private key (during signing): ", privateKey);
     if (!privateKey) throw new Error("Private key not found");
     
     const encoder = new TextEncoder();
@@ -23,8 +73,8 @@ export const signMessage = async (message, voterId) => {
     // RSASSA-PSS with explicit salt length
     const signature = await crypto.subtle.sign(
       { 
-        name: "RSASSA-PSS",
-        saltLength: 32
+        name: "RSASSA-PKCS1-v1_5"
+        
       },
       privateKey,
       data
@@ -39,12 +89,14 @@ export const signMessage = async (message, voterId) => {
 /**
  * Verify signature using public key in PEM format
  */
-export const verifySignature = async (message, signature, publicKeyPem) => {
+export const verifySignature = async (message_b64, signature_b64, publicKeyPem) => {
   try {
-    if (!message || !signature || !publicKeyPem) {
+    if (!message_b64 || !signature_b64 || !publicKeyPem) {
       return false;
     }
 
+    const message = base64ToBytes(message_b64);
+    const signature = base64ToBytes(signature_b64);
     // Parse PEM format
     const pemHeader = "-----BEGIN PUBLIC KEY-----";
     const pemFooter = "-----END PUBLIC KEY-----";
@@ -54,31 +106,25 @@ export const verifySignature = async (message, signature, publicKeyPem) => {
       .replace(/\s/g, "");
     
     const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    
-    // Import public key
+
+    // Import public key with PKCS#1 v1.5
     const publicKey = await crypto.subtle.importKey(
       "spki",
-      keyData,
-      { 
-        name: "RSASSA-PSS", 
-        hash: "SHA-256" 
+      keyData.buffer,
+      {
+        name: "RSASSA-PKCS1-v1_5",  // Changed from RSASSA-PSS
+        hash: "SHA-256"
       },
       false,
       ["verify"]
     );
-    
-    const encoder = new TextEncoder();
-    const data = encoder.encode(JSON.stringify(message));
-    
-    // Verify with matching configuration
+
+    // Verify with PKCS#1 v1.5 (matches your backend)
     return await crypto.subtle.verify(
-      { 
-        name: "RSASSA-PSS",
-        saltLength: 32
-      },
+      "RSASSA-PKCS1-v1_5",  // Changed from PSS configuration
       publicKey,
       signature,
-      data
+      message
     );
   } catch (error) {
     console.error("Signature verification error:", error);

@@ -63,58 +63,6 @@ class ElectionView(APIView):
             logger.error("ElectionView error:", exc_info=True)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-# @method_decorator(csrf_exempt, name='dispatch')
-# class SubmitVoteView(APIView):
-#     authentication_classes = [JWTAuthentication]  
-#     permission_classes = [IsAuthenticated]
-    
-#     def post(self, request):
-#         serializer = VoteSubmisionSerializer(data=request.data)
-    
-#         if serializer.is_valid():
-#             votes = serializer.save()
-            
-#             vote_serializer = VoteSerializer(votes, many=True)
-#             return Response({
-#                 "message": "Vote submitted successfully",
-#                 "votes": vote_serializer.data
-#             }, status=status.HTTP_201_CREATED)
-#         else:
-#             print("Validation errors:", serializer.errors)
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
-# class ElectionListView(generics.ListAPIView):
-#     """List all active elections with candidates"""
-    
-#     def get(self, request, *args, **kwargs):
-#         try:
-#             # Get active elections
-#             elections = Election.objects.filter(
-#                 is_active=True,
-#                 start_date__lte=timezone.now(),
-#                 end_date__gte=timezone.now()
-#             ).prefetch_related('candidates__party', 'candidates__position')
-            
-#             # Get candidates for these elections
-#             candidates = Candidate.objects.filter(
-#                 election__in=elections
-#             ).select_related('party', 'position')
-            
-#             election_serializer = ElectionListSerializer(elections, many=True)
-#             candidate_serializer = CandidateSerializer(candidates, many=True)
-            
-#             return Response({
-#                 'elections': election_serializer.data,
-#                 'candidates': candidate_serializer.data
-#             })
-            
-#         except Exception as e:
-#             logger.error(f"Error fetching elections: {str(e)}")
-#             return Response(
-#                 {'error': 'Failed to fetch elections'}, 
-#                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
-#             )
-
 class CredentialIssueView(generics.CreateAPIView):
     """Issue voting credential for a user and election"""
     permission_classes = [IsAuthenticated]
@@ -129,6 +77,8 @@ class CredentialIssueView(generics.CreateAPIView):
         S_base64 = request.data.get('serial_number')
         S = base64.b64decode(S_base64)
         print("Decoded S:", S)
+        S_numbers = list(S)
+        print("S as numbers:", S_numbers)
         user = request.user
         election_id = request.data.get('election_id')
         
@@ -149,8 +99,10 @@ class CredentialIssueView(generics.CreateAPIView):
             
             if existing_credential:
                 voter_credential_id = existing_credential.id
+                print("singma (signature) : ", existing_credential.signature)
                 return Response({
                     'message': 'Credential already issued',
+                    'serial_number_b64': S_base64,
                     'signature': existing_credential.signature,
                     'serial_number_hash': existing_credential.serial_number_hash,
                     'voter_credential_id': voter_credential_id
@@ -180,8 +132,6 @@ class CredentialIssueView(generics.CreateAPIView):
             
         }, status=status.HTTP_201_CREATED)
        
-
-
 class AnonymousVoteView(generics.CreateAPIView):
     """Submit anonymous vote"""
     permission_classes = [IsAuthenticated]

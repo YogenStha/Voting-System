@@ -8,7 +8,15 @@ import { signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
    encryptVoteHybrid, signVotePayload, processVoteForSubmission
  } from './hooks/encryption';
 
- 
+const base64Encode = (uint8Array) => {
+  return btoa(String.fromCharCode(...uint8Array));
+};
+
+const base64Decode = (base64String) => {
+  const binaryString = atob(base64String);
+  return new Uint8Array([...binaryString].map(char => char.charCodeAt(0)));
+};
+
 const ElectionVotingApp = () => {
   const navigate = useNavigate();
   const [elections, setElections] = useState([]);
@@ -25,6 +33,7 @@ const ElectionVotingApp = () => {
   const [showKeyManagement, setShowKeyManagement] = useState(false);
   const [hasUserKey, setHasUserKey] = useState(false);
   const [credentials, setCredentials] = useState({}); // Store credentials per election
+  const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
 
   const voterId = parseInt(sessionStorage.getItem("user_id"), 10);
   console.log('type of Voter ID from session:', typeof voterId);
@@ -37,22 +46,40 @@ const ElectionVotingApp = () => {
 
   // Load credentials from localStorage
   const loadCredentials = () => {
+     if (!voterId) {
+      console.warn('No voter ID found, cannot load credentials');
+      return;
+    }
+
     try {
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
+         console.log('Successfully loaded credentials:', Object.keys(parsedCredentials));
         setCredentials(parsedCredentials);
       }
     } catch (error) {
       console.error('Error loading credentials:', error);
+      setCredentials({});
     }
   };
 
   // Save credentials to localStorage
   const saveCredentials = (newCredentials) => {
+    if (!voterId) {
+      console.error('Cannot save credentials: No voter ID');
+      return false;
+    }
+
     try {
-      localStorage.setItem(`credentials_${voterId}`, JSON.stringify(newCredentials));
+       if (!newCredentials || typeof newCredentials !== 'object') {
+        throw new Error('Invalid credentials object');
+      }
+      const credentialsString = JSON.stringify(newCredentials);
+      localStorage.setItem(`credentials_${voterId}`, JSON.stringify(credentialsString));
       setCredentials(newCredentials);
+      console.log('Successfully saved credentials for elections:', Object.keys(newCredentials));
+      return true;
     } catch (error) {
       console.error('Error saving credentials:', error);
     }
@@ -60,59 +87,130 @@ const ElectionVotingApp = () => {
 
   // Generate or retrieve credential for an election
   const getOrCreateCredential = async (electionId) => {
-    // Check if we already have a credential for this election
+
+    if (isLoadingCredentials) {
+      console.log('Already loading credentials, please wait...');
+      return null;
+    }
+    setIsLoadingCredentials(true);
+
+    try{
+      loadCredentials();
     if (credentials[electionId]) {
       console.log('Using existing credential for election:', electionId);
       console.log('Existing credential:', credentials[electionId]);
-      return credentials[electionId];
+
+      const existingCredential = credentials[electionId];
+        if (existingCredential.S_b64 && existingCredential.sigma_b64 && existingCredential.voter_credential_id) {
+          console.log('Existing credential is valid');
+          return existingCredential;
+        } else {
+          console.log('Existing credential is invalid, will regenerate');
+        }
+      
     }
 
-    // Generate new credential
     console.log('Generating new credential for election:', electionId);
     const S_array = JSON.parse(localStorage.getItem('S'));
-    const S = new Uint8Array(S_array);
-    console.log("S value in dashboard:", S_array);
+      if (!S_array) {
+        throw new Error('Serial number S not found in localStorage');
+      }
+
+      const S = new Uint8Array(S_array);
+      console.log("S value in dashboard:", S_array);
+      console.log("Submitting S: ", S);
+      console.log("encoded S: ", base64Encode(S));
+
+      let S_b64;
+      let sigma_b64;
+      let voter_credential;
+
+      try {
+        // Request credential signature from EA
+        const response = await fetch(`http://localhost:8000/api/elections/${electionId}/credential/`, {
+          method: 'POST',
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            election_id: parseInt(electionId), // Ensure it's a number
+            serial_number: base64Encode(S)
+          })
+        });
+
+        const responseText = await response.text();
+        console.log('Raw response from EA:', responseText);
+
+        if (response.ok) {
+          const data = JSON.parse(responseText);
+          console.log("Received credential data from EA:", data);
+          
+          // Handle both new credential creation (201) and existing credential (200)
+          if (data.signature && data.voter_credential_id && data.serial_number_b64) {
+            S_b64 =  data.serial_number_b64;
+            sigma_b64 = data.signature;
+            voter_credential = data.voter_credential_id;
+            console.log("Received voter credential id:", voter_credential);
+            console.log("Decoded sigma:", sigma_b64);
+          } else {
+            throw new Error('Invalid response format from EA');
+          }
+        } else {
+          let errorData;
+          try {
+            errorData = JSON.parse(responseText);
+          } catch (e) {
+            errorData = { error: responseText };
+          }
+          
+          console.error('Error response from EA:', errorData);
+          throw new Error(errorData.error || `Server error: ${response.status}`);
+        }
+      } catch (networkError) {
+        console.error('Network error getting credential signature:', networkError);
+        throw new Error(`Failed to get credential from server: ${networkError.message}`);
+      }
+
+      // Validate the received data
+      if (!sigma_b64 || !voter_credential) {
+        throw new Error('Invalid credential data received from server');
+      }
+
+      // Create the credential object
+      const credential = { 
+        S_b64: S_b64, 
+        sigma_b64: sigma_b64, 
+        voter_credential_id: voter_credential,
+        created_at: new Date().toISOString(), // Add timestamp for debugging
+        election_id: electionId
+      };
+      
+      // Save the credential with proper error handling
+      const newCredentials = { ...credentials, [electionId]: credential };
+      const saveSuccess = saveCredentials(newCredentials);
+      
+      if (!saveSuccess) {
+        console.warn('Failed to save credential to localStorage, but proceeding with in-memory credential');
+      }
+      
+      return credential;
+
+    } catch (error) {
+      console.error('Error in getOrCreateCredential:', error);
+      throw error; // Re-throw to be handled by calling function
+    } finally {
+      setIsLoadingCredentials(false);
+    }
+  };
+    // Check if we already have a credential for this election
+   
+
+    // Generate new credential
+   
     // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
     // For now, we'll simulate it or get it from your backend
-    let sigma;
-    let voter_credential;
-    try {
-      // Request credential signature from EA
-      const response = await fetch(`http://localhost:8000/api/elections/${electionId}/credential/`, {
-        method: 'POST',
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          election_id: electionId,
-          serial_number: btoa(String.fromCharCode(...S))
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Received credential data from EA:", data);
-        sigma = base64Decode(data.signature);
-        voter_credential = data.voter_credential_id;
-        console.log("received voter credential id: ", voter_credential);
-      } else {
-        throw new Error('Failed to get credential signature from EA');
-      }
-    } catch (error) {
-      console.error('Error getting credential signature:', error);
-      // For development, generate a dummy sigma
-      sigma = crypto.getRandomValues(new Uint8Array(256)); // Dummy signature
-    }
-
-    const credential = { S: Array.from(S), sigma: Array.from(sigma), voter_credential_id: voter_credential };
-    
-    // Save the credential
-    const newCredentials = { ...credentials, [electionId]: credential };
-    saveCredentials(newCredentials);
-    
-    return credential;
-  };
+   
 
   // Load voted elections from localStorage on component mount
   const loadVotedElections = () => {
@@ -269,16 +367,16 @@ const ElectionVotingApp = () => {
     try {
       // Get or create credential for this election
       const credential = await getOrCreateCredential(electionId);
-      const S = new Uint8Array(credential.S);
-      const sigma = new Uint8Array(credential.sigma);
+      const S_b64 = credential.S_b64;
+      const sigma_b64 = credential.sigma_b64;
       const voter_credential = credential.voter_credential_id;
 
       if (!voter_credential){
         throw new Error("Voter credential ID not valid.  you are not eligible in this election.");
       }
-      console.log('Using credential S:', S);
+      console.log('Using credential S:', S_b64);
       console.log("voter credential id: ", voter_credential);
-      console.log('Using credential sigma:', sigma);
+      console.log('Using credential sigma:', sigma_b64);
 
       // Find the election to get its public key
       const election = elections.find(e => e.id === electionId);
@@ -286,41 +384,116 @@ const ElectionVotingApp = () => {
         throw new Error('Election public key not found');
       }
 
-      const sigmaValid = await verifySignature(S, sigma, election.public_key);
+      const sigmaValid = await verifySignature(S_b64, sigma_b64, election.public_key);
       if (!sigmaValid) throw new Error("Credential signature verification failed(Sigma). Cannot proceed with voting.");
+      console.log("✓ Credential signature verified successfully (Sigma)");
+
 
       // Prepare candidate selections
       const candidateIds = positions.map(positionId => electionVotes[positionId]);
       console.log('Selected candidate IDs:', candidateIds);
 
+      const voteData = { 
+      candidate_ids: candidateIds,
+      election_id: electionId,
+      timestamp: new Date().toISOString()
+    };
+    console.log('✓ Vote data structure prepared');
+
+     console.log('=== STEP 5: PERFORMING HYBRID ENCRYPTION ===');
+
+     const encryptionResult = await encryptVoteHybrid(voteData, election.public_key);
+     console.log('✓ Vote encrypted with AES-GCM');
+    console.log('✓ AES key encrypted with RSA-OAEP');
+    console.log('✓ Encryption result keys:', Object.keys(encryptionResult));
+
+     console.log('=== STEP 6: CREATING SERIAL COMMITMENT ===');
+
+    const serialCommitment = await sha256(S_b64 ? base64Decode(S_b64) : new Uint8Array());
+    console.log('✓ Serial commitment created (SHA-256 of S)');
+    console.log('✓ Commitment length:', serialCommitment.length);
+
+    console.log('=== STEP 7: CONSTRUCTING SECURE PAYLOAD ===');
+
+    const payload = {
+      election_id: electionId,
+      voter_credential_id: voter_credential,
+      candidate_ciphertext: encryptionResult.candidate_ciphertext,  // AES-encrypted vote
+      aes_key_wrapped: encryptionResult.aes_key_wrapped,            // RSA-encrypted AES key
+      credential_sig: sigma_b64,                          // Credential signature
+      serial_commitment: base64Encode(serialCommitment),            // Prevents double voting
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('✓ Base payload constructed');
+    console.log('✓ Payload fields:', Object.keys(payload));
+
+    // STEP 2I: DIGITAL SIGNATURE
+    console.log('=== STEP 8: SIGNING PAYLOAD WITH VOTER KEY ===');
+    
+    const signedPayload = await signVotePayload(payload, voterId);
+    console.log('✓ Payload signed with voter private key (RSASSA-PSS)');
+    console.log('✓ Signature added to payload');
+
+    // STEP 2J: FINAL VALIDATION
+    console.log('=== STEP 9: FINAL PAYLOAD VALIDATION ===');
+    
+    const requiredFields = [
+      'election_id', 
+      'voter_credential_id', 
+      'candidate_ciphertext', 
+      'aes_key_wrapped',
+      'credential_sig', 
+      'serial_commitment', 
+      'timestamp',
+      'signature'
+    ];
+    
+    const missingFields = requiredFields.filter(field => !signedPayload[field]);
+    if (missingFields.length > 0) {
+      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+    
+    console.log('✓ All required fields present');
+    console.log('✓ Final payload ready for submission');
+
+    // STEP 2K: SECURE SUBMISSION
+    console.log('=== STEP 10: SUBMITTING SECURE VOTE ===');
+    console.log("Final payload structure:", {
+      ...signedPayload,
+      signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging
+      candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
+      aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
+    });
+
       // Generate AES key for vote encryption
-      const aesKey = crypto.getRandomValues(new Uint8Array(32));
+      // const aesKey = crypto.getRandomValues(new Uint8Array(32));
 
-      // Encrypt the vote data
-      const voteData = new TextEncoder().encode(JSON.stringify({ candidate_ids: candidateIds }));
-      const voteCiphertext = await encryptWithAES(aesKey, voteData);
+      // // Encrypt the vote data
+      // const voteData = new TextEncoder().encode(JSON.stringify({ candidate_ids: candidateIds }));
+      // const voteCiphertext = await encryptWithAES(aesKey, voteData);
 
-      // Encrypt AES key with election public key
-      const aesKeyWrapped = await encryptWithRSA(election.public_key, aesKey);
+      // // Encrypt AES key with election public key
+      // const aesKeyWrapped = await encryptWithRSA(election.public_key, aesKey);
 
-      // Create serial commitment (hash of S)
-      const serialCommitment = await sha256(S);
+      // // Create serial commitment (hash of S)
+      // const serialCommitment = await sha256(S);
 
-      // Prepare payload according to your backend expectations
-      const payload = {
-        election_id: electionId,
-        voter_credential_id: voter_credential,
-        candidate_ciphertext: base64Encode(voteCiphertext),
-        aes_key_wrapped: base64Encode(aesKeyWrapped),
-        credential_sig: base64Encode(sigma),
-        serial_commitment: base64Encode(serialCommitment),
-        timestamp: new Date().toISOString()
-      };
+      // // Prepare payload according to your backend expectations
+      // const payload = {
+      //   election_id: electionId,
+      //   voter_credential_id: voter_credential,
+      //   candidate_ciphertext: base64Encode(voteCiphertext),
+      //   aes_key_wrapped: base64Encode(aesKeyWrapped),
+      //   credential_sig: base64Encode(sigma),
+      //   serial_commitment: base64Encode(serialCommitment),
+      //   timestamp: new Date().toISOString()
+      // };
 
-      const signed_payload = signMessage(payload, voterId);
-      payload.signature = base64Encode(signed_payload);
+      // const signed_payload = signMessage(payload, voterId);
+      // payload.signature = base64Encode(signed_payload);
 
-      console.log("Submitting vote payload:", payload);
+      // console.log("Submitting vote payload:", payload);
 
       const response = await fetch("http://localhost:8000/api/vote/", {
         method: "POST",
@@ -329,7 +502,7 @@ const ElectionVotingApp = () => {
           "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(signedPayload)
       });
 
       // Parse the response

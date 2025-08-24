@@ -18,7 +18,7 @@ function Home() {
   </p>
 
   <img
-    src="/chunabe.png"
+    src={chunabe.png}
     alt="this an image"
     className="w-full max-w-md h-auto mx-auto mb-8"
   />

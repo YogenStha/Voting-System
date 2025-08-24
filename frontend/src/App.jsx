@@ -9,7 +9,7 @@ import VotingPage from "./as.jsx";
 import ProtectedRoute from './ProtectedRoute.jsx';
 // add protectedRoutes.jsx later to allow only logged in users to access certain routes
 function App() {
-  useAuthTokenRefresh(6); // Refresh token every 4 minutes by default
+  useAuthTokenRefresh(1); // Refresh token every 4 minutes by default
   const location = useLocation();
   // List of paths where Navbar should be hidden
   const hideNavbarPaths = ["/voting"];

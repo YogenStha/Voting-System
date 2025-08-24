@@ -3,75 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircle } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
-import { signMessage } from './hooks/signature';
 
-// Utility functions for encryption and hashing
-const sha256 = async (data) => {
-  const encoder = new TextEncoder();
-  const dataBuffer = typeof data === 'string' ? encoder.encode(data) : data;
-  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
-  return new Uint8Array(hashBuffer);
-};
+import { signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
+   encryptVoteHybrid, signVotePayload, processVoteForSubmission
+ } from './hooks/encryption';
 
-const encryptWithAES = async (key, plaintext) => {
-  const iv = crypto.getRandomValues(new Uint8Array(12)); // GCM needs 12 bytes IV
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    key,
-    { name: 'AES-GCM' },
-    false,
-    ['encrypt']
-  );
-  
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv: iv },
-    cryptoKey,
-    plaintext
-  );
-  
-  // Combine IV and ciphertext
-  const combined = new Uint8Array(iv.length + encrypted.byteLength);
-  combined.set(iv);
-  combined.set(new Uint8Array(encrypted), iv.length);
-  
-  return combined;
-};
-
-const encryptWithRSA = async (publicKeyPem, data) => {
-  // Remove PEM headers and decode base64
-  const pemHeader = "-----BEGIN PUBLIC KEY-----";
-  const pemFooter = "-----END PUBLIC KEY-----";
-  const pemContents = publicKeyPem.replace(pemHeader, '').replace(pemFooter, '').replace(/\s/g, '');
-  const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-  
-  const publicKey = await crypto.subtle.importKey(
-    'spki',
-    keyData,
-    {
-      name: 'RSA-OAEP',
-      hash: 'SHA-256'
-    },
-    false,
-    ['encrypt']
-  );
-  
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'RSA-OAEP' },
-    publicKey,
-    data
-  );
-  
-  return new Uint8Array(encrypted);
-};
-
-const base64Encode = (uint8Array) => {
-  return btoa(String.fromCharCode(...uint8Array));
-};
-
-const base64Decode = (base64String) => {
-  return Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
-};
-
+ 
 const ElectionVotingApp = () => {
   const navigate = useNavigate();
   const [elections, setElections] = useState([]);
@@ -126,6 +63,7 @@ const ElectionVotingApp = () => {
     // Check if we already have a credential for this election
     if (credentials[electionId]) {
       console.log('Using existing credential for election:', electionId);
+      console.log('Existing credential:', credentials[electionId]);
       return credentials[electionId];
     }
 
@@ -334,6 +272,10 @@ const ElectionVotingApp = () => {
       const S = new Uint8Array(credential.S);
       const sigma = new Uint8Array(credential.sigma);
       const voter_credential = credential.voter_credential_id;
+
+      if (!voter_credential){
+        throw new Error("Voter credential ID not valid.  you are not eligible in this election.");
+      }
       console.log('Using credential S:', S);
       console.log("voter credential id: ", voter_credential);
       console.log('Using credential sigma:', sigma);
@@ -343,6 +285,9 @@ const ElectionVotingApp = () => {
       if (!election || !election.public_key) {
         throw new Error('Election public key not found');
       }
+
+      const sigmaValid = await verifySignature(S, sigma, election.public_key);
+      if (!sigmaValid) throw new Error("Credential signature verification failed(Sigma). Cannot proceed with voting.");
 
       // Prepare candidate selections
       const candidateIds = positions.map(positionId => electionVotes[positionId]);
@@ -371,6 +316,9 @@ const ElectionVotingApp = () => {
         serial_commitment: base64Encode(serialCommitment),
         timestamp: new Date().toISOString()
       };
+
+      const signed_payload = signMessage(payload, voterId);
+      payload.signature = base64Encode(signed_payload);
 
       console.log("Submitting vote payload:", payload);
 

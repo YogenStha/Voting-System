@@ -1,4 +1,5 @@
 import secrets
+from django.conf import settings
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from .models import Election, User, Eligibility
@@ -12,18 +13,22 @@ def set_election_salt(sender, instance, **kwargs):
         # Generate a random salt for the election
         instance.salt = secrets.token_hex(32)
         
-
-@receiver(post_save, sender=Election)
-def populate_eligibility(sender, instance, created, **kwargs):
+@receiver(post_save, sender=settings.AUTH_USER_MODEL)
+def assign_election_based_on_college(sender, instance, created, **kwargs):
     if created:
-        # Loop through users who should be eligible
-        print(instance)
-        users = User.objects.filter(college = instance.name)
-        for user in users:
-            Eligibility.objects.get_or_create(election = instance, user = user)
+        print("Signal fired for user:", instance.username)
+        try:
+            print("Looking for election with name:", instance.college)
+            election = Election.objects.get(name=instance.college)
+        except Election.DoesNotExist:
+            print("No matching election for college:", instance.college)
+            return   # no matching election for this college
 
-@receiver(post_save, sender=User)
-def populate_eligibility_for_elections(sender, instance, created, **kwargs):
-    if created:
-        for election in Election.objects.all():
-            Eligibility.objects.get_or_create(election=election, user=instance)
+        # check if user is already registered in another election
+        if Eligibility.objects.filter(user=instance).exists():
+            print("User already assigned to an election")
+            return  # already assigned, skip
+
+        # create eligibility
+        Eligibility.objects.get_or_create(user=instance, election=election)
+        print("Eligibility created for user:", instance.username)

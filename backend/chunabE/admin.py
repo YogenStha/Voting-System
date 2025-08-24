@@ -2,6 +2,7 @@ from django.contrib import admin
 from .models import *
 from django.contrib.admin import register
 from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.admin import GroupAdmin as BaseGroupAdmin
 
@@ -54,18 +55,95 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
 
 @register(Candidate)
 class CandidateAdmin(ModelAdmin):
-    list_display = ('name', 'party', 'position', 'manifesto', 'is_verified', 'election')
-    search_fields = ('user__username', 'party__name', 'position__name')
+    # list_display = ('name', 'party', 'position', 'manifesto', 'is_verified', 'election')
+    # search_fields = ('user__username', 'party__name', 'position__name')
     
     # list_filter = ('is_active')
     
+    # fieldsets = (
+    #     (None, {
+    #         "fields": (
+    #             'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified', 'election'
+    #         ),
+    #     }),
+    # )
+    
+    list_display = (
+        'name', 
+        'party', 
+        'position', 
+        'display_image',  # Custom method to show image thumbnail
+        'is_verified', 
+        'election'
+    )
+    
+    list_filter = (
+        'is_verified', 
+        'party', 
+        'position', 
+        'election'
+    )
+    
+    search_fields = (
+        'name',
+        'candidate_id',
+        'party__name', 
+        'position__name'
+    )
+    
+    readonly_fields = ('display_image_preview',)  # This makes the method available in forms
+    
+    
     fieldsets = (
-        (None, {
-            "fields": (
-                'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified', 'election'
+        ('Basic Information', {
+            'fields': (
+                'name', 
+                'candidate_id',
+                'is_verified'
+            ),
+        }),
+        ('Election Details', {
+            'fields': (
+                'election',
+                'party', 
+                'position'
+            ),
+        }),
+        ('Profile', {
+            'fields': (
+                'image',
+                'display_image_preview',  # Show current image
+                'manifesto'
             ),
         }),
     )
+    
+    def display_image(self, obj):
+        """Display small thumbnail in list view"""
+        if obj.image:
+            try:
+                return format_html(
+                    '<img src="{}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" onerror="this.src=\'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTAiIGhlaWdodD0iNTAiIHZpZXdCb3g9IjAgMCA1MCA1MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjUwIiBoZWlnaHQ9IjUwIiBmaWxsPSIjZjNmNGY2Ii8+CjxwYXRoIGQ9Ik0yNSAyNWMzLjMgMCA2LTIuNyA2LTZzLTIuNy02LTYtNi02IDIuNy02IDZTMjEuNyAyNSAyNSAyNXptMCA0Yy00IDAtMTIgMi0xMiA2djJoMjR2LTJDMzcgMzEgMjkgMjkgMjUgMjl6IiBmaWxsPSIjOWNhM2FmIi8+Cjwvc3ZnPgo=\'; this.title=\'Image not found\';" />',
+                    obj.image.url
+                )
+            except:
+                return "Image Error"
+        return "No Image"
+    display_image.short_description = "Photo"
+    
+    def display_image_preview(self, obj):
+        """Display larger image in detail view"""
+        if obj.image:
+            try:
+                return format_html(
+                    '<div><img src="{}" style="max-width: 300px; max-height: 300px; border-radius: 10px;" onerror="this.style.display=\'none\'; this.nextSibling.style.display=\'block\';" /><div style="display:none; padding: 20px; border: 1px dashed #ccc; text-align: center;">Image not found: {}</div></div>',
+                    obj.image.url,
+                    obj.image.url
+                )
+            except Exception as e:
+                return f"Image Error: {str(e)}"
+        return "No image uploaded"
+    display_image_preview.short_description = "Current Image"
     
     # def image_preview(self, obj):
     #     if obj.image and hasattr(obj.image, 'url'):

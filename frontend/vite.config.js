@@ -6,7 +6,13 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   build: {
     outDir: 'dist',         // default, can omit
-    assetsDir: 'assets',    // ensures all assets (images, fonts, etc.) go into dist/assets
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        // Put all assets (images, fonts, etc.) into dist/assets/
+        assetFileNames: "assets/[name]-[hash][extname]",
+      },
+    },    // ensures all assets (images, fonts, etc.) go into dist/assets
   },
   server: {
     proxy: {

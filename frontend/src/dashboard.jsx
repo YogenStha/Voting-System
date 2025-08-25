@@ -55,7 +55,7 @@ const ElectionVotingApp = () => {
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
-         console.log('Successfully loaded credentials:', Object.keys(parsedCredentials));
+         console.log('Successfully loaded credentials:', parsedCredentials);
         setCredentials(parsedCredentials);
       }
     } catch (error) {
@@ -152,7 +152,7 @@ const ElectionVotingApp = () => {
             sigma_b64 = data.signature;
             voter_credential = data.voter_credential_id;
             console.log("Received voter credential id:", voter_credential);
-            console.log("Decoded sigma:", sigma_b64);
+            console.log("received sigma from backend:", sigma_b64);
           } else {
             throw new Error('Invalid response format from EA');
           }
@@ -383,7 +383,7 @@ const ElectionVotingApp = () => {
       if (!election || !election.public_key) {
         throw new Error('Election public key not found');
       }
-
+      console.log("election public key: ", election.public_key);
       const sigmaValid = await verifySignature(S_b64, sigma_b64, election.public_key);
       if (!sigmaValid) throw new Error("Credential signature verification failed(Sigma). Cannot proceed with voting.");
       console.log("✓ Credential signature verified successfully (Sigma)");
@@ -405,12 +405,14 @@ const ElectionVotingApp = () => {
      const encryptionResult = await encryptVoteHybrid(voteData, election.public_key);
      console.log('✓ Vote encrypted with AES-GCM');
     console.log('✓ AES key encrypted with RSA-OAEP');
+    console.log("AES key: ", encryptionResult.aes_key_wrapped);
     console.log('✓ Encryption result keys:', Object.keys(encryptionResult));
 
      console.log('=== STEP 6: CREATING SERIAL COMMITMENT ===');
 
     const serialCommitment = await sha256(S_b64 ? base64Decode(S_b64) : new Uint8Array());
     console.log('✓ Serial commitment created (SHA-256 of S)');
+    console.log('serial commitment: ', serialCommitment);
     console.log('✓ Commitment length:', serialCommitment.length);
 
     console.log('=== STEP 7: CONSTRUCTING SECURE PAYLOAD ===');
@@ -426,15 +428,16 @@ const ElectionVotingApp = () => {
     };
 
     console.log('✓ Base payload constructed');
+    console.log("payload before signing: ", payload);
     console.log('✓ Payload fields:', Object.keys(payload));
 
     // STEP 2I: DIGITAL SIGNATURE
     console.log('=== STEP 8: SIGNING PAYLOAD WITH VOTER KEY ===');
     
     const signedPayload = await signVotePayload(payload, voterId);
-    console.log('✓ Payload signed with voter private key (RSASSA-PSS)');
+    console.log('✓ Payload signed with voter private key (PKCS#1 v1.5.)');
     console.log('✓ Signature added to payload');
-
+    console.log("signature: ", signedPayload.signature);
     // STEP 2J: FINAL VALIDATION
     console.log('=== STEP 9: FINAL PAYLOAD VALIDATION ===');
     
@@ -459,6 +462,7 @@ const ElectionVotingApp = () => {
 
     // STEP 2K: SECURE SUBMISSION
     console.log('=== STEP 10: SUBMITTING SECURE VOTE ===');
+    console.log("final signed payload: ", signedPayload);
     console.log("Final payload structure:", {
       ...signedPayload,
       signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging

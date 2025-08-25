@@ -46,22 +46,22 @@ class RegisterSerializer(serializers.ModelSerializer):
          
         return value
     
-    def validate_email(self, value):
-        if not value:
-            raise serializers.ValidationError("This field is required.")
+    # def validate_email(self, value):
+    #     if not value:
+    #         raise serializers.ValidationError("This field is required.")
         
-        try:
-            django_validate_email(value)
-        except DjangoValidationError:
-            raise serializers.ValidationError("Invalid email format.")
+    #     try:
+    #         django_validate_email(value)
+    #     except DjangoValidationError:
+    #         raise serializers.ValidationError("Invalid email format.")
         
-        if User.objects.only("email").filter(email=value).exists():
-            raise serializers.ValidationError("This email is already taken.")
+    #     if User.objects.only("email").filter(email=value).exists():
+    #         raise serializers.ValidationError("This email is already taken.")
 
-        if not verify_mail(value):
-            raise serializers.ValidationError("Email is not valid.")
+    #     if not verify_mail(value):
+    #         raise serializers.ValidationError("Email is not valid.")
         
-        return value
+    #     return value
     
     def validate_student_id(self, value):
         if not value:
@@ -96,7 +96,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.fingerprint = fingerprint
             user.save()
             print("keys saved")
-            threading.Thread(target=send_Voter_ID_mail, args=(user.email, user.username, user.voter_id))
+            # threading.Thread(target=send_Voter_ID_mail, args=(user.email, user.username, user.voter_id))
             
             self.extra_data = {
                 "private_key": private_key_pem,
@@ -340,6 +340,7 @@ class CredentialResponseSerializer(serializers.Serializer):
 class AnonymousVoteSerializer(serializers.Serializer):
     election_id = serializers.IntegerField()
     voter_credential_id = serializers.IntegerField()
+    signature = serializers.CharField()
     candidate_ciphertext = serializers.CharField()  # Base64 encoded
     aes_key_wrapped = serializers.CharField()       # Base64 encoded
     credential_sig = serializers.CharField()        # Base64 encoded
@@ -349,6 +350,16 @@ class AnonymousVoteSerializer(serializers.Serializer):
     def validate(self, data):
         # Validate election exists and is active
         try:
+            print("before validation: \n" )
+            print(f"election_id: {data['election_id']}\n")
+            print(f"voter_credential_id: {data['voter_credential_id']}\n")
+            print(f"signature: {data['signature']}\n")
+            print(f"candidate_ciphertext: {data['candidate_ciphertext']}\n")
+            print(f"aes_key_wrapped: {data['aes_key_wrapped']}\n")
+            print(f"credential_sig: {data['credential_sig']}\n")
+            print(f"serial_commitment: {data['serial_commitment']}\n")
+            print(f"timestamp: {data['timestamp']}\n")
+            
             election = Election.objects.get(id=data['election_id'], is_active=True)
             current_time = timezone.now()
             
@@ -370,6 +381,7 @@ class AnonymousVoteSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
+        print("Submited vote data:", validated_data)  # Debugging line
         election_id = validated_data['election_id']
         election = Election.objects.get(id=election_id)
         voter_credential = VoterCredential.objects.get(id=validated_data['voter_credential_id'])
@@ -386,18 +398,18 @@ class AnonymousVoteSerializer(serializers.Serializer):
         # ).update(is_latest=False)
         
         # Create new vote
-        vote = Vote.objects.create(
-            election=election,
-            voter_credential = voter_credential,
-            candidate_ciphertext=candidate_ciphertext,
-            aes_key_wrapped=aes_key_wrapped,
-            credential_sig=credential_sig,
-            serial_commitment=serial_commitment,
-            timestamp=validated_data['timestamp']
-            # is_latest=True  # Add this if you add the field
-        )
+        # vote = Vote.objects.create(
+        #     election=election,
+        #     voter_credential = voter_credential,
+        #     candidate_ciphertext=candidate_ciphertext,
+        #     aes_key_wrapped=aes_key_wrapped,
+        #     credential_sig=credential_sig,
+        #     serial_commitment=serial_commitment,
+        #     timestamp=validated_data['timestamp']
+        #     # is_latest=True  # Add this if you add the field
+        # )
         
-        return vote
+        # return vote
 
 class VoteHistorySerializer(serializers.ModelSerializer):
     class Meta:

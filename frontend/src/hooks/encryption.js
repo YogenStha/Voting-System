@@ -70,6 +70,7 @@ export const signMessage = async (message, voterId) => {
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(message));
     
+    console.log("data before signing: (json stringify)", data);
     // RSASSA-PSS with explicit salt length
     const signature = await crypto.subtle.sign(
       { 
@@ -89,15 +90,77 @@ export const signMessage = async (message, voterId) => {
 /**
  * Verify signature using public key in PEM format
  */
+// export const verifySignature = async (message_b64, signature_b64, publicKeyPem) => {
+//   try {
+//     if (!message_b64 || !signature_b64 || !publicKeyPem) {
+//       return false;
+//     }
+
+//     const message = base64ToBytes(message_b64);
+//     const signature = base64ToBytes(signature_b64);
+
+//     console.log("base64 decoded S: ", message);
+//     console.log("base64 decoded signature: ", signature);
+//     // Parse PEM format
+//     const pemHeader = "-----BEGIN PUBLIC KEY-----";
+//     const pemFooter = "-----END PUBLIC KEY-----";
+//     const pemContents = publicKeyPem
+//       .replace(pemHeader, "")
+//       .replace(pemFooter, "")
+//       .replace(/\s/g, "");
+//     console.log("pemContents: ", pemContents);
+//     const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+//     console.log("keyData: ", keyData);
+    
+//     // Import public key with PKCS#1 v1.5
+//     const publicKey = await crypto.subtle.importKey(
+//       "spki",
+//       keyData,
+//       {
+//         name: "RSASSA-PKCS1-v1_5",  // Changed from RSASSA-PSS
+//         hash: "SHA-256"
+//       },
+//       false,
+//       ["verify"]
+//     );
+
+//     console.log("Imported public key(remove header footer): ", publicKey);
+
+//     // Verify with PKCS#1 v1.5 (matches  backend)
+//     return await crypto.subtle.verify(
+//       "RSASSA-PKCS1-v1_5",  // Changed from PSS configuration
+//       publicKey,
+//       signature,
+//       message
+//     );
+//   } catch (error) {
+//     console.error("Signature verification error:", error);
+//     return false;
+//   }
+// };
+
 export const verifySignature = async (message_b64, signature_b64, publicKeyPem) => {
   try {
+    console.log('Starting signature verification...');
+    
     if (!message_b64 || !signature_b64 || !publicKeyPem) {
+      console.error('Missing required parameters:', {
+        message_b64: !!message_b64,
+        signature_b64: !!signature_b64,
+        publicKeyPem: !!publicKeyPem
+      });
       return false;
     }
 
-    const message = base64ToBytes(message_b64);
-    const signature = base64ToBytes(signature_b64);
-    // Parse PEM format
+    // Decode base64 values
+    console.log('Decoding base64 values...');
+    const message = Uint8Array.from(atob(message_b64), c => c.charCodeAt(0));
+    const signature = Uint8Array.from(atob(signature_b64), c => c.charCodeAt(0));
+    
+    console.log('Message length:', message.length);
+    console.log('Signature length:', signature.length);
+
+    // Clean PEM and decode
     const pemHeader = "-----BEGIN PUBLIC KEY-----";
     const pemFooter = "-----END PUBLIC KEY-----";
     const pemContents = publicKeyPem
@@ -105,29 +168,41 @@ export const verifySignature = async (message_b64, signature_b64, publicKeyPem) 
       .replace(pemFooter, "")
       .replace(/\s/g, "");
     
+    console.log('PEM contents length:', pemContents.length);
+    
     const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
+    console.log('Key data length:', keyData.length);
 
-    // Import public key with PKCS#1 v1.5
+    // Import EA public key
+    console.log('Importing public key...');
     const publicKey = await crypto.subtle.importKey(
       "spki",
-      keyData.buffer,
+      keyData,
       {
-        name: "RSASSA-PKCS1-v1_5",  // Changed from RSASSA-PSS
-        hash: "SHA-256"
+        name: "RSASSA-PKCS1-v1_5",
+        hash: "SHA-256",
       },
       false,
       ["verify"]
     );
+    
+    console.log('Public key imported successfully');
 
-    // Verify with PKCS#1 v1.5 (matches your backend)
-    return await crypto.subtle.verify(
-      "RSASSA-PKCS1-v1_5",  // Changed from PSS configuration
+    // Verify
+    console.log('Performing verification...');
+    const result = await crypto.subtle.verify(
+      { name: "RSASSA-PKCS1-v1_5" },
       publicKey,
       signature,
       message
     );
+    
+    console.log('Verification result:', result);
+    return result;
+    
   } catch (error) {
     console.error("Signature verification error:", error);
+    console.error("Error stack:", error.stack);
     return false;
   }
 };
@@ -154,7 +229,7 @@ export const encryptWithAES = async (key, plaintext) => {
 
     // Encrypt with AES-GCM (authenticated encryption)
     const encrypted = await crypto.subtle.encrypt(
-      { name: 'AES-GCM', iv: iv },
+      { name: 'AES-GCM', iv: iv, tagLength: 128 },
       cryptoKey,
       plaintext
     );

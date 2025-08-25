@@ -18,6 +18,11 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import UserTokenSerializer
 import logging
+import datetime
+import json
+from utils.block_logic import calculate_merkle_root, mine_block
+from utils.verification import verify_credential_signature_sigma, verify_vote_signature
+from utils.decrypt import decrypt_aes_key, decrypt_vote_data
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +109,7 @@ class CredentialIssueView(generics.CreateAPIView):
                     'message': 'Credential already issued',
                     'serial_number_b64': S_base64,
                     'signature': existing_credential.signature,
-                    'serial_number_hash': existing_credential.serial_number_hash,
+                    'serial_number_hash': existing_credential.serial_number_b64,
                     'voter_credential_id': voter_credential_id
                 }, status=status.HTTP_200_OK)
                 
@@ -117,6 +122,7 @@ class CredentialIssueView(generics.CreateAPIView):
         credential, created = VoterCredential.objects.get_or_create(
             user=user,
             election=election,
+            serial_number_b64=S_base64,
             serial_number_hash=S_hash,
             signature=signature_b64)
         
@@ -127,7 +133,7 @@ class CredentialIssueView(generics.CreateAPIView):
         return Response({
             'signature': credential.signature,
             'serial_number_b64': S_base64,
-            'serial_number_hash': credential.serial_number_hash,
+            'serial_number_hash': credential.serial_number_b64,
             'voter_credential_id': credential.id
             
         }, status=status.HTTP_201_CREATED)
@@ -147,7 +153,9 @@ class AnonymousVoteView(generics.CreateAPIView):
                 election_id = serializer.validated_data['election_id']
                 credential_sig = serializer.validated_data['credential_sig']
                 serial_commitment = serializer.validated_data['serial_commitment']
-                
+                voter_credential_id = serializer.validated_data['voter_credential_id']
+                aes_key_wrapped_b64 = serializer.validated_data['aes_key_wrapped']
+                candidate_ciphertext_b64 = serializer.validated_data['candidate_ciphertext']
                 # Decode serial commitment to validate format
                 try:
                     serial_commitment_bytes = base64.b64decode(serial_commitment)
@@ -165,9 +173,91 @@ class AnonymousVoteView(generics.CreateAPIView):
                 # TODO: In production, verify credential signature using EA public key
                 # For now, we'll do basic validation against stored credentials
                 
-                # Create the vote
-                vote = serializer.save()
+                election = Election.objects.get(id = election_id);
+                voter_credential = VoterCredential.objects.get(id = voter_credential_id)
                 
+                if not verify_credential_signature_sigma(election, voter_credential, credential_sig):
+                    return Response({'error': 'Invalid credential signature'}, status=400)
+                
+                vote_payload = serializer.validated_data.copy()
+                
+                vote_payload_copy = vote_payload.copy()
+                
+                if isinstance(vote_payload_copy.get("timestamp"), datetime.datetime):
+                    # Convert to ISO format but truncate to milliseconds like frontend
+                    iso_string = vote_payload_copy["timestamp"].isoformat()
+                    # Truncate microseconds to milliseconds (6 digits -> 3 digits)
+                    if '.' in iso_string:
+                        iso_parts = iso_string.split('.')
+                        iso_string = iso_parts[0] + '.' + iso_parts[1][:3]
+                    vote_payload_copy["timestamp"] = iso_string + 'Z'
+                
+                print("timestamp (isoformat): ", vote_payload_copy['timestamp'])
+                print("vote_playload:(after verifying credential signature) ", vote_payload)
+                signature_b64 = vote_payload['signature']  # signature sent by voter
+                print("signature: ", signature_b64)
+                
+                user_credential_id = voter_credential.user_id
+                user = User.objects.get(id = user_credential_id)
+                print("user_id: ", user_credential_id)
+                
+                if not verify_vote_signature(vote_payload_copy, signature_b64, user.public_key):
+                    return Response({"error": "invalid user signature"}, status=400)
+                
+                # here decrypt vote contents and verify if they are valid
+                
+                # decrypt aes key using election's private key
+                print("aes key wrapped: ", aes_key_wrapped_b64)
+                aes_key = decrypt_aes_key(election, aes_key_wrapped_b64)
+                print("\n\n aes key decrypted: ", aes_key)
+                
+                # decrypt vote using above aes key
+                print("candidate cipher text (vote data): ", candidate_ciphertext_b64)
+                decrypted_vote_data = decrypt_vote_data(candidate_ciphertext_b64, aes_key)
+                print("\n\ndecrypted vote data: ", decrypted_vote_data)
+                
+                #validate the vote data
+                for cid in decrypted_vote_data.get("candidate_ids", []):
+                    try:
+                        candidate = Candidate.objects.get(id = cid,
+                                                        election=decrypted_vote_data['election_id'])
+                    except Candidate.DoesNotExist:
+                        return Response({"error": "Not valid candidate or election"}, status=400)
+                    
+                print(f"valid candidate id: {decrypted_vote_data['candidate_ids'][0]} and election id: {decrypted_vote_data['election_id']}")
+                # Create the vote
+                tx_hash = hashlib.sha256(
+                    json.dumps(decrypted_vote_data, sort_keys=True).encode("utf-8")).hexdigest()
+                
+                previous_votes = Vote.objects.filter(
+                                election=election,
+                                serial_commitment=serial_commitment,
+                                is_latest=True  # add this field to mark the latest vote
+                            )
+                # Mark them as no longer latest
+                previous_votes.update(is_latest=False)
+                
+                vote = Vote.objects.create(
+                    election=election,
+                    candidate_ciphertext=base64.b64decode(candidate_ciphertext_b64),
+                    aes_key_wrapped=base64.b64decode(aes_key_wrapped_b64),
+                    credential_sig=base64.b64decode(credential_sig),
+                    serial_commitment=serial_commitment,
+                    tx_hash=tx_hash,
+                    is_latest=True
+                )
+                print("vote creation success!!")
+                
+                 # Update tally
+                for cid in decrypted_vote_data.get("candidate_ids", []):
+                    tally, created = Tally.objects.get_or_create(
+                        election=election,
+                        candidate_id=cid,
+                        defaults={"vote_count": 0}
+                    )
+                    tally.vote_count += 1
+                    tally.save()
+
                 # Update vote history for the authenticated user
                 # This is for UI purposes and doesn't compromise anonymity
                 vote_history, created = VoteHistory.objects.get_or_create(
@@ -181,6 +271,35 @@ class AnonymousVoteView(generics.CreateAPIView):
                     vote_history.voted_at = timezone.now()
                     vote_history.save()
                 
+                open_block, created = Block.objects.get_or_create(
+                    finalized=False,
+                    defaults={
+                        'index': (Block.objects.aggregate(max_index=models.Max('index'))['max_index'] or 0) + 1,
+                        'previous_hash': Block.objects.filter(finalized=True).order_by('-index').first().current_hash
+                                 if Block.objects.filter(finalized=True).exists() else None,
+                        'timestamp': datetime.datetime.now()
+                    }
+                )
+                
+                BlockTransaction.objects.create(
+                    block = open_block,
+                    vote = vote,
+                    tx_hash = tx_hash
+                )
+                
+                # Check if block should be mined (e.g., 5 votes per block)
+                block_transactions = BlockTransaction.objects.filter(block=open_block)
+                if block_transactions.count() >= 5:
+                    # compute merkle root
+                    tx_hashes = list(block_transactions.values_list('tx_hash', flat=True))
+                    open_block.merkle_root = calculate_merkle_root(tx_hashes)
+                    open_block.difficulty = 4
+                    open_block.nonce = 0
+                    open_block.save()
+                
+                    mined_block = mine_block(open_block, difficulty=open_block.difficulty)
+                    print(f"Block {mined_block.index} mined with hash: {mined_block.current_hash}")
+                    
                 logger.info(f"Anonymous vote submitted for election {election_id}")
                 
                 return Response(

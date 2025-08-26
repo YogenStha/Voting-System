@@ -24,9 +24,9 @@ function Home() {
   <div className="flex flex-col sm:flex-row gap-4">
     <button
       className="bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-md hover:bg-blue-700 transition"
-      onClick={() => navigate('/voting')}
+      onClick={() => navigate('/result')}
     >
-      Vote
+      Result
     </button>
     <button className="bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-md hover:bg-blue-700 transition"
     onClick={()=> navigate("/Candidates")}>
@@ -185,7 +185,7 @@ function Home() {
       {/* FAQ Section */}
       <FAQSection/>
 
-      <footer  id="contact" className="bg-black text-white py-10">
+      <footer className="bg-black text-white py-10">
   <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
     
     {/* Site Description */}

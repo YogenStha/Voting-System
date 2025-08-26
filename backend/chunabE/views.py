@@ -68,11 +68,13 @@ class ElectionView(APIView):
             candidates = Candidate.objects.filter(is_verified=True)
             candidate_data = CandidateSerializer(candidates, many=True).data
             
+            print("candidate detail: ", candidate_data)
             return Response({
                 "elections": election_data,
                 "candidates": candidate_data,
                  
             })
+            
         except Exception as e:
             logger.error("ElectionView error:", exc_info=True)
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

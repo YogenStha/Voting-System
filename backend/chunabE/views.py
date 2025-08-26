@@ -246,6 +246,22 @@ class AnonymousVoteView(generics.CreateAPIView):
                 # Mark them as no longer latest
                 previous_votes.update(is_latest=False)
                 
+                if previous_votes.exists():
+                    for prev_vote in previous_votes:
+                        try:
+                            prev_vote_data = decrypt_vote_data(
+                                base64.b64encode(prev_vote.candidate_ciphertext).decode('utf-8'),
+                                decrypt_aes_key(election, base64.b64encode(prev_vote.aes_key_wrapped).decode('utf-8'))
+                            )
+                            for prev_cid in prev_vote_data.get("candidate_ids", []):
+                                prev_tally = Tally.objects.filter(election=election, candidate_id=prev_cid).first()
+                                if prev_tally and prev_tally.vote_count > 0:
+                                    prev_tally.vote_count -= 1
+                                    prev_tally.save()
+                        except Exception as e:
+                            logger.warning(f"Failed to adjust tally for previous vote: {str(e)}")
+
+                
                 vote = Vote.objects.create(
                     election=election,
                     candidate_ciphertext=base64.b64decode(candidate_ciphertext_b64),

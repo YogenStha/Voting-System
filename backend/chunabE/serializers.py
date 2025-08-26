@@ -151,12 +151,6 @@ class PositionSerializer(serializers.ModelSerializer):
         model = Position
         fields = ['id', 'position_name']
         
-class CandidateSerializer(serializers.ModelSerializer):
-    party = PartySerializer()
-    position = PositionSerializer()
-    class Meta:
-        model = Candidate
-        fields = ['id', 'name', 'image', 'manifesto', 'party', 'position', 'is_verified', 'election', 'position']
 
 class VoteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -173,6 +167,20 @@ class VoteSerializer(serializers.ModelSerializer):
         
         return data
     
+class ElectionMiniSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Election
+        fields = ['id', 'name', 'start_date', 'end_date', 'is_active']
+        
+class CandidateSerializer(serializers.ModelSerializer):
+    party = PartySerializer()
+    position = PositionSerializer()
+    election = ElectionMiniSerializer()
+    class Meta:
+        model = Candidate
+        fields = ['id', 'name', 'image', 'manifesto', 'party', 'is_verified', 'election', 'position']
+
+    
 class ElectionSerializer(serializers.ModelSerializer):
     candidates = CandidateSerializer(many=True)
     
@@ -186,6 +194,8 @@ class ElectionSerializer(serializers.ModelSerializer):
         if data['is_active'] == 0:
             raise serializers.ValidationError("Election must be active.")
         return data
+
+
     
 # class VoteSerializer(serializers.ModelSerializer):
 #     class Meta:

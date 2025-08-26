@@ -3,12 +3,22 @@ import React, { useEffect, useState } from 'react';
 function UserCards() {
   const [users, setUsers] = useState([]);
 
-  useEffect(() => {
-    fetch('./JsonData.json')
-      .then(response => response.json())
-      .then(data => setUsers(data))
+   useEffect(() => {
+    fetch('http://localhost/api/candidate-details/',{
+      method:"GET",
+      headers: {
+        "Content-Type":"application/json",
+      }
+    })
+      .then(res => res.json())
+      .then(data => {
+        setUsers(data); // store the fetched data in state
+        console.log('candidate detail: ', data);
+      })
       .catch(error => console.error('Error fetching data:', error));
   }, []);
+
+
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 p-6">

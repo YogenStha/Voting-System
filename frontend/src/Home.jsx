@@ -1,6 +1,6 @@
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
-import { useNavigate } from 'react-router-dom'
-
+import { useNavigate } from 'react-router-dom';
+import chunabe from "./assets/chunabe.png";
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
 import FAQSection from "./Faq.jsx";
 function Home() {
@@ -17,7 +17,7 @@ function Home() {
   </p>
 
   <img
-    src="/chunabe.png"
+    src={chunabe}
     alt="this an image"
     className="w-full max-w-md h-auto mx-auto mb-8"
   />

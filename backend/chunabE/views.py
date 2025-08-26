@@ -45,6 +45,15 @@ class RegisterView(APIView):
                 "private_key": serializer.extra_data['private_key'],
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class CandidateDetailsView(APIView):
+    
+    def get(self, request):
+        
+        candidate = Candidate.objects.all()
+        serializer = CandidateSerializer(candidate, many=True)
+        print("serializer data: ", serializer.data)
+        return Response({"candidate_detail": serializer.data})
         
 class UserLoginJWTView(TokenObtainPairView):
     serializer_class = UserTokenSerializer

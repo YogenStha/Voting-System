@@ -10,9 +10,11 @@ const Navbar = () => {
           
           {/* Logo */}
           <div className="flex items-center">
+            <a href="/">
             <span className="text-2xl font-bold text-indigo-500">
               ChunabE
             </span>
+            </a>
           </div>
 
           {/* Desktop Menu */}
@@ -40,7 +42,7 @@ const Navbar = () => {
               Login
             </a>
             <a
-              href="/register"
+              href="/RegistrationOptions"
               className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 font-bold"
             >
               Register
@@ -94,7 +96,7 @@ const Navbar = () => {
             Login
           </a>
           <a
-            href="/register"
+            href="/RegistrationOptions"
             className="block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 text-center font-bold"
           >
             Register

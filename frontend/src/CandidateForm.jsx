@@ -2,11 +2,13 @@ import { useState } from 'react';
 
 export default function CandidateForm() {
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
     phone: '',
     position: '',
-    Document: null,
+    party: '',
+    election: '',
+    document: null,
   });
 
   const handleChange = (e) => {
@@ -17,9 +19,35 @@ export default function CandidateForm() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+
+    const formDataToSend = new FormData();
+  formDataToSend.append("name", formData.name);
+  formDataToSend.append("email", formData.email);
+  formDataToSend.append("phone", formData.phone);
+  formDataToSend.append("position", formData.position); // ID of position
+  formDataToSend.append("party", formData.party);       // ID of party
+  formDataToSend.append("document", formData.document); // file
+  // formDataToSend.append("image", formData.image); 
+  formDataToSend.append("election", formData.election);       
+console.log("data to send: ", formDataToSend);
+for (let [key, value] of formDataToSend.entries()) {
+  console.log(key, value);
+}
+    try{
+      
+      const response = await fetch("http://localhost:8000/api/candidate-register/", {
+      method: 'POST',
+      body: formDataToSend,
+    })
+    const data = await response.json();
+    console.log('message: ', data.message);
+
+    }catch(error){
+      console.log("error: ", error);
+    }
+    
     // You can integrate with backend or form service here
   };
 
@@ -37,7 +65,7 @@ export default function CandidateForm() {
           <label className="block text-sm font-medium mb-1">Full Name</label>
           <input
             type="text"
-            name="fullName"
+            name="name"
             value={formData.fullName}
             onChange={handleChange}
             required
@@ -69,6 +97,18 @@ export default function CandidateForm() {
           />
         </div>
 
+         <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Party</label>
+          <input
+            type="text"
+            name="party"
+            value={formData.party}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="mb-4">
           <label className="block text-sm font-medium mb-1">Position Applied</label>
           <input
@@ -81,11 +121,24 @@ export default function CandidateForm() {
           />
         </div>
 
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-1">Election</label>
+          <input
+            type="text"
+            name="election"
+            value={formData.election}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
         <div className="mb-6">
           <label className="block text-sm font-medium mb-1">Upload Document</label>
           <input
             type="file"
-            name="Document"
+            name="document"
+            
             onChange={handleChange}
             accept=".pdf,.doc,.docx"
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

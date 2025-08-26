@@ -140,6 +140,30 @@ class UserTokenSerializer(TokenObtainPairSerializer):
             "user_id": user.id,
         })
         return data
+    
+class CandidateRegisterSerializer(serializers.ModelSerializer):
+    
+    party = serializers.SlugRelatedField(
+        queryset=Party.objects.all(),
+        slug_field='party_name'  # use the unique field
+    )
+    position = serializers.SlugRelatedField(
+        queryset=Position.objects.all(),
+        slug_field='position_name'
+    )
+    election = serializers.SlugRelatedField(
+        queryset=Election.objects.all(),
+        slug_field='name'
+    )
+    class Meta:
+        model = Candidate
+        fields = ['name', 'email', 'phone', 'position', 'party', 'document', 'election']
+    
+    def validate_phone(self, value):
+        if not value.isdigit() or len(value) != 10:
+            raise serializers.ValidationError("Phone number must be 10 digits")
+        return value
+        
 
 class PartySerializer(serializers.ModelSerializer):
     class Meta:

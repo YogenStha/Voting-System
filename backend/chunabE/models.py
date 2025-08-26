@@ -55,7 +55,10 @@ class User(AbstractUser):
 class Candidate(models.Model):
     name = models.CharField(max_length=100)
     image = models.ImageField(upload_to='candidates/')
+    email = models.EmailField()
+    phone = models.CharField(max_length=10)
     manifesto = models.TextField()
+    document = models.FileField(upload_to='candidates/')
     candidate_id = models.CharField(max_length=10, unique=True)
     party = models.ForeignKey('Party', related_name='party', on_delete=models.CASCADE)
     position = models.ForeignKey('Position', related_name='position', on_delete=models.CASCADE)

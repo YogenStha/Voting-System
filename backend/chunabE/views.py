@@ -6,6 +6,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework import status
 from .serializers import *
 from .models import *
@@ -31,7 +32,7 @@ def get_csrf_token(request):
 
 
 # Create your views here.
-class RegisterView(APIView):
+class UserRegisterView(APIView):
     
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
@@ -46,6 +47,19 @@ class RegisterView(APIView):
             }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class CandidateRegisterView(APIView):
+    parser_classes = (MultiPartParser, FormParser)
+    def post(self, request):
+        serializer = CandidateRegisterSerializer(data = request.data)
+        print("post")
+        if serializer.is_valid():
+            candidate = serializer.save()
+            
+            return Response({"message": "Registration success"}, status=status.HTTP_200_OK)
+        else:
+            print(serializer.errors)
+            return Response({"error": "Registration failed."}, status=status.HTTP_400_BAD_REQUEST)
+        
 class CandidateDetailsView(APIView):
     
     def get(self, request):

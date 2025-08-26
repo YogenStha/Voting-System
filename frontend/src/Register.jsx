@@ -102,7 +102,7 @@ const Register = () => {
             <label className="block text-gray-700 font-medium">College</label>
             <input
               type="text"
-              name="student_id"
+              name="college"
               className="w-full mt-1 p-2 border rounded-xl"
               required
               value={formData.college}

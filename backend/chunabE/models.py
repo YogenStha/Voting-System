@@ -86,13 +86,19 @@ class Position(models.Model):
     
 class Vote(models.Model):
     election = models.ForeignKey('Election', on_delete=models.CASCADE, db_index=True)
-    voter_credential = models.ForeignKey('VoterCredential', on_delete=models.CASCADE)
+    # voter_credential = models.ForeignKey('VoterCredential', on_delete=models.CASCADE)
     candidate_ciphertext = models.BinaryField()       # AES-encrypted ballot
     aes_key_wrapped = models.BinaryField()            # AES key encrypted with election RSA
     credential_sig = models.BinaryField()             # EA signature over credential serial
     serial_commitment = models.CharField(max_length=128, db_index=True)  # H = SHA-256(S)
+    tx_hash = models.CharField(max_length=80, db_index=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    is_latest = models.BooleanField(default=False)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["election", "serial_commitment"]),
+        ]
 
 class BlockTransaction(models.Model):
     block = models.ForeignKey('Block', on_delete=models.CASCADE)
@@ -130,10 +136,10 @@ class Block(models.Model):
         super().save(*args, **kwargs)
         
     
-class Revote(models.Model):
-    old_vote_id = models.CharField(max_length=20, unique=True)
+# class Revote(models.Model):
+#     old_vote_id = models.CharField(max_length=20, unique=True)
    
-    timestamp = models.DateTimeField(auto_now_add=True)
+#     timestamp = models.DateTimeField(auto_now_add=True)
     
 class Election(models.Model):
     name = models.CharField(max_length=100)
@@ -176,10 +182,7 @@ class Election(models.Model):
             password=None,
             backend=default_backend())
         
-        signature = private_key.sign(S, padding.PSS(
-                        mgf=padding.MGF1(hashes.SHA256()),
-                        salt_length=padding.PSS.MAX_LENGTH
-                                        ),
+        signature = private_key.sign(S, padding.PKCS1v15(), 
                             hashes.SHA256())
         return signature
 
@@ -202,11 +205,11 @@ class VoterCredential(models.Model):
     """Store issued credentials for voters"""
     user = models.ForeignKey('User', on_delete=models.CASCADE)
     election = models.ForeignKey('Election', on_delete=models.CASCADE)
-    serial_number_hash = models.CharField(max_length=100, null=True)  # SHA256 hash of serial number
+    serial_number_b64 = models.CharField(max_length=100, null=True)  # base64 of serial number
+    serial_number_hash = models.CharField(max_length=150, null=True)
     signature = models.TextField(null=True)  # EA signature over serial number
     issued_at = models.DateTimeField(auto_now_add=True)
    
-
     class Meta:
         unique_together = ['user', 'election']
 
@@ -216,7 +219,13 @@ class VoteHistory(models.Model):
     user = models.ForeignKey('User', on_delete=models.CASCADE)
     election = models.ForeignKey('Election', on_delete=models.CASCADE)
     voted_at = models.DateTimeField(auto_now_add=True)
-    vote_count = models.PositiveIntegerField(default=1)  # For revoting
+    vote_count = models.PositiveIntegerField(default=1)  # For revoting (vote count per candidate)
 
     class Meta:
         unique_together = ['user', 'election']
+
+class Tally(models.Model):
+    election = models.ForeignKey(Election, on_delete=models.CASCADE)
+    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
+    vote_count = models.PositiveIntegerField(default=0)
+    

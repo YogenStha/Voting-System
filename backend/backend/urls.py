@@ -18,13 +18,34 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
+from django.http import HttpResponse
+import os
 
 app_name = 'chunabE'  
+
+def debug_media_config(request):
+    info = f"""
+    DEBUG: {settings.DEBUG}
+    MEDIA_URL: {settings.MEDIA_URL}
+    MEDIA_ROOT: {settings.MEDIA_ROOT}
+    Media root exists: {os.path.exists(settings.MEDIA_ROOT)}
+    
+    Files in media/candidates:
+    {os.listdir(os.path.join(settings.MEDIA_ROOT, 'candidates')) if os.path.exists(os.path.join(settings.MEDIA_ROOT, 'candidates')) else 'Directory not found'}
+    """
+    return HttpResponse(f"<pre>{info}</pre>")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('chunabE.urls')),  # Include the chunabE app URLs
     path("api-auth/", include("rest_framework.urls")),
-]+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
+
+# Media serving
+print(f"DEBUG: {settings.DEBUG}")  # This will print in your console
+print(f"MEDIA_URL: {settings.MEDIA_URL}")
+print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
 
 
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

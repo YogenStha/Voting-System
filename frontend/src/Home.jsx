@@ -15,8 +15,7 @@ function Home() {
   <p className="text-base sm:text-lg text-black mb-8 max-w-2xl font-semibold">
     Create an election for your school or organization in seconds. Your voters can vote from any location on any device.
   </p>
-
-  <img
+    <img
     src={chunabe}
     alt="this an image"
     className="w-full max-w-md h-auto mx-auto mb-8"

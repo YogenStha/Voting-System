@@ -1,5 +1,4 @@
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
-// import logo from './assets/ChunabE.png';
 import { useNavigate } from 'react-router-dom'
 
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
@@ -30,7 +29,8 @@ function Home() {
     >
       Vote
     </button>
-    <button className="bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-md hover:bg-blue-700 transition">
+    <button className="bg-blue-600 text-white font-semibold px-6 sm:px-8 py-3 rounded-md hover:bg-blue-700 transition"
+    onClick={()=> navigate("/Candidates")}>
       View Candidates
     </button>
   </div>
@@ -106,17 +106,17 @@ function Home() {
   </div>
 </section>
 
-      <section id="services" className="flex items-center justify-center bg-black text-white px-4 py-16 md:py-24 rounded-2xl">
+      <section id="services" className="flex items-center justify-center bg-white text-black px-4 py-16 md:py-24 rounded-2xl">
   <div className="w-full max-w-6xl">
     {/* Centered Title with Indigo Underline */}
-    <h2 className="text-3xl md:text-4xl font-semibold text-center border-b-4 border-indigo-500 w-fit mx-auto pb-2 mb-12">
+    <h2 className="text-3xl md:text-4xl font-semibold text-center border-b-4 border-gray-800 w-fit mx-auto pb-2 mb-12">
       Our Services
     </h2>
 
     {/* Services Grid */}
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {/* Box 1 */}
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+      <div className="bg-gray-700 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
         <FaVoteYea className="w-12 h-12 mx-auto mb-4 text-green-300" />
         <h3 className="text-2xl font-semibold text-white mb-3">Online Elections</h3>
         <p className="text-indigo-100 text-base md:text-lg">
@@ -125,7 +125,7 @@ function Home() {
       </div>
 
       {/* Box 2 */}
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+      <div className="bg-gray-700 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
         <FaPollH className="w-12 h-12 mx-auto mb-4 text-yellow-300" />
         <h3 className="text-2xl font-semibold text-white mb-3">Online Polls</h3>
         <p className="text-indigo-100 text-base md:text-lg">
@@ -134,7 +134,7 @@ function Home() {
       </div>
 
       {/* Box 3 */}
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
+      <div className="bg-gray-700 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow text-center">
         <FaLock className="w-12 h-12 mx-auto mb-4 text-pink-300" />
         <h3 className="text-2xl font-semibold text-white mb-3">Automated Ballot Counts</h3>
         <p className="text-indigo-100 text-base md:text-lg">

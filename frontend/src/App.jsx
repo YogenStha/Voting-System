@@ -3,10 +3,13 @@ import Home from "./Home.jsx";
 import Login from "./Login.jsx";
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Register from "./Register.jsx";
+import Option from "./RegistrationOptions.jsx";
 import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
 import ElectionDetails from "./dashboard.jsx";
 import VotingPage from "./as.jsx";
 import ProtectedRoute from './ProtectedRoute.jsx';
+import UserCards from "./Candidates.jsx";
+import CandidateForm from "./CandidateForm.jsx"
 // add protectedRoutes.jsx later to allow only logged in users to access certain routes
 function App() {
   useAuthTokenRefresh(6); // Refresh token every 4 minutes by default
@@ -19,12 +22,15 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/RegistrationOptions" element={<Option />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/CandidateForm" element={<CandidateForm/>}/>
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <ElectionDetails />
           </ProtectedRoute>} />
         <Route path="/voting" element={<VotingPage />} />
+        <Route path="/Candidates" element={<UserCards/>}/>
       </Routes>
     </>
   );

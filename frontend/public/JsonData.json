@@ -1,0 +1,82 @@
+[
+  {
+    "candidate_id": "NP001",
+    "name": "Aarav Shrestha",
+    "image": "chunabe.png",
+    "manifesto": "Education reform, digital infrastructure, and youth employment.",
+    "partyname": "Progressive Nepal Party",
+    "position": "Member of Parliament"
+  },
+  {
+    "candidate_id": "NP002",
+    "name": "Maya Karki",
+    "image": "chunabe.png",
+    "manifesto": "Women's empowerment, healthcare access, and rural development.",
+    "partyname": "Nepal Democratic Front",
+    "position": "Provincial Assembly"
+  },
+  {
+    "candidate_id": "NP003",
+    "name": "Rajan Thapa",
+    "image": "chunabe.png",
+    "manifesto": "Transparent governance and economic growth.",
+    "partyname": "United People's Alliance",
+    "position": "Mayor"
+  },
+  {
+    "candidate_id": "NP004",
+    "name": "Sita Adhikari",
+    "image": "chunabe.png",
+    "manifesto": "Green energy, clean water, and sustainable farming.",
+    "partyname": "Eco Vision Party",
+    "position": "Municipal Chairperson"
+  },
+  {
+    "candidate_id": "NP005",
+    "name": "Binod Lama",
+    "image": "chunabe.png",
+    "manifesto": "National security and veterans' welfare.",
+    "partyname": "National Unity Congress",
+    "position": "Member of Parliament"
+  },
+  {
+    "candidate_id": "NP006",
+    "name": "Kritika Joshi",
+    "image": "chunabe.png",
+    "manifesto": "Affordable housing and urban renewal.",
+    "partyname": "People's Reform Movement",
+    "position": "City Councilor"
+  },
+  {
+    "candidate_id": "NP007",
+    "name": "Dipesh Raut",
+    "image": "chunabe.png",
+    "manifesto": "Tech innovation and startup support.",
+    "partyname": "Future Forward Party",
+    "position": "Member of Parliament"
+  },
+  {
+    "candidate_id": "NP008",
+    "name": "Nisha Gurung",
+    "image": "chunabe.png",
+    "manifesto": "Public transport expansion and safety.",
+    "partyname": "Urban Progress Alliance",
+    "position": "Mayor"
+  },
+  {
+    "candidate_id": "NP009",
+    "name": "Prakash Bhandari",
+    "image": "chunabe.png",
+    "manifesto": "Agricultural modernization and food security.",
+    "partyname": "Nepal Farmers Union",
+    "position": "Provincial Assembly"
+  },
+  {
+    "candidate_id": "NP010",
+    "name": "Laxmi Tamang",
+    "image": "chunabe.png",
+    "manifesto": "Youth leadership and civic engagement.",
+    "partyname": "New Generation Party",
+    "position": "Municipal Chairperson"
+  }
+]

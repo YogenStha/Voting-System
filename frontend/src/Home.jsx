@@ -186,7 +186,7 @@ function Home() {
       {/* FAQ Section */}
       <FAQSection/>
 
-      <footer className="bg-black text-white py-10">
+      <footer id="contact" className="bg-black text-white py-10">
   <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
     
     {/* Site Description */}

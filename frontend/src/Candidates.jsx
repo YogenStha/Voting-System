@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 function UserCards() {
   const [users, setUsers] = useState([]);
 
-  useEffect(() => {
+  useEffect(() =>{
+    
     fetch('./JsonData.json')
       .then(response => response.json())
       .then(data => setUsers(data))

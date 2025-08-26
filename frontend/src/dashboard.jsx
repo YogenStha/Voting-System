@@ -4,9 +4,10 @@ import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircl
 import Cookies from 'js-cookie';
 import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
 
-import { signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
-   encryptVoteHybrid, signVotePayload, processVoteForSubmission
- } from './hooks/encryption';
+import {
+  signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
+  encryptVoteHybrid, signVotePayload, processVoteForSubmission
+} from './hooks/encryption';
 
 const base64Encode = (uint8Array) => {
   return btoa(String.fromCharCode(...uint8Array));
@@ -42,11 +43,13 @@ const ElectionVotingApp = () => {
     fetchElectionData();
     fetchUserVoteHistory();
     loadCredentials();
+
   }, []);
 
+  console.log("candidate details: ", candidates);
   // Load credentials from localStorage
   const loadCredentials = () => {
-     if (!voterId) {
+    if (!voterId) {
       console.warn('No voter ID found, cannot load credentials');
       return;
     }
@@ -55,7 +58,7 @@ const ElectionVotingApp = () => {
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
-         console.log('Successfully loaded credentials:', parsedCredentials);
+        console.log('Successfully loaded credentials:', parsedCredentials);
         setCredentials(parsedCredentials);
       }
     } catch (error) {
@@ -72,7 +75,7 @@ const ElectionVotingApp = () => {
     }
 
     try {
-       if (!newCredentials || typeof newCredentials !== 'object') {
+      if (!newCredentials || typeof newCredentials !== 'object') {
         throw new Error('Invalid credentials object');
       }
       const credentialsString = JSON.stringify(newCredentials);
@@ -94,24 +97,24 @@ const ElectionVotingApp = () => {
     }
     setIsLoadingCredentials(true);
 
-    try{
+    try {
       loadCredentials();
-    if (credentials[electionId]) {
-      console.log('Using existing credential for election:', electionId);
-      console.log('Existing credential:', credentials[electionId]);
+      if (credentials[electionId]) {
+        console.log('Using existing credential for election:', electionId);
+        console.log('Existing credential:', credentials[electionId]);
 
-      const existingCredential = credentials[electionId];
+        const existingCredential = credentials[electionId];
         if (existingCredential.S_b64 && existingCredential.sigma_b64 && existingCredential.voter_credential_id) {
           console.log('Existing credential is valid');
           return existingCredential;
         } else {
           console.log('Existing credential is invalid, will regenerate');
         }
-      
-    }
 
-    console.log('Generating new credential for election:', electionId);
-    const S_array = JSON.parse(localStorage.getItem('S'));
+      }
+
+      console.log('Generating new credential for election:', electionId);
+      const S_array = JSON.parse(localStorage.getItem('S'));
       if (!S_array) {
         throw new Error('Serial number S not found in localStorage');
       }
@@ -145,10 +148,10 @@ const ElectionVotingApp = () => {
         if (response.ok) {
           const data = JSON.parse(responseText);
           console.log("Received credential data from EA:", data);
-          
+
           // Handle both new credential creation (201) and existing credential (200)
           if (data.signature && data.voter_credential_id && data.serial_number_b64) {
-            S_b64 =  data.serial_number_b64;
+            S_b64 = data.serial_number_b64;
             sigma_b64 = data.signature;
             voter_credential = data.voter_credential_id;
             console.log("Received voter credential id:", voter_credential);
@@ -163,7 +166,7 @@ const ElectionVotingApp = () => {
           } catch (e) {
             errorData = { error: responseText };
           }
-          
+
           console.error('Error response from EA:', errorData);
           throw new Error(errorData.error || `Server error: ${response.status}`);
         }
@@ -178,22 +181,22 @@ const ElectionVotingApp = () => {
       }
 
       // Create the credential object
-      const credential = { 
-        S_b64: S_b64, 
-        sigma_b64: sigma_b64, 
+      const credential = {
+        S_b64: S_b64,
+        sigma_b64: sigma_b64,
         voter_credential_id: voter_credential,
         created_at: new Date().toISOString(), // Add timestamp for debugging
         election_id: electionId
       };
-      
+
       // Save the credential with proper error handling
       const newCredentials = { ...credentials, [electionId]: credential };
       const saveSuccess = saveCredentials(newCredentials);
-      
+
       if (!saveSuccess) {
         console.warn('Failed to save credential to localStorage, but proceeding with in-memory credential');
       }
-      
+
       return credential;
 
     } catch (error) {
@@ -203,14 +206,14 @@ const ElectionVotingApp = () => {
       setIsLoadingCredentials(false);
     }
   };
-    // Check if we already have a credential for this election
-   
+  // Check if we already have a credential for this election
 
-    // Generate new credential
-   
-    // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
-    // For now, we'll simulate it or get it from your backend
-   
+
+  // Generate new credential
+
+  // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
+  // For now, we'll simulate it or get it from your backend
+
 
   // Load voted elections from localStorage on component mount
   const loadVotedElections = () => {
@@ -276,6 +279,7 @@ const ElectionVotingApp = () => {
       const data = await response.json();
       setElections(data.elections);
       setCandidates(data.candidates);
+      console.log("fetch candidate data: ", data);
 
     } catch (err) {
       setError(err.message);
@@ -285,8 +289,22 @@ const ElectionVotingApp = () => {
   };
 
   const getElectionCandidates = (electionId) => {
-    return candidates.filter(candidate => candidate.election === electionId);
-  };
+  console.log("Filtering candidates for election: ", electionId)
+  console.log("Available candidates: ", candidates)
+
+  return candidates.filter(candidate => {
+    // Check different possible structures for election ID
+    const candidateElectionId = candidate.election?.id || 
+                                candidate.election_id || 
+                                candidate.electionId ||
+                                candidate.election;
+    
+    console.log("Candidate election Id: ", candidateElectionId);
+    console.log("Target election Id: ", electionId);
+
+    return candidateElectionId == electionId;
+  });
+};
 
   const handleVote = (electionId, positionId, candidateId) => {
     console.log('handleVote called:', { electionId, positionId, candidateId });
@@ -363,7 +381,7 @@ const ElectionVotingApp = () => {
     }
 
     setSubmittingVote(true);
-    
+
     try {
       // Get or create credential for this election
       const credential = await getOrCreateCredential(electionId);
@@ -371,7 +389,7 @@ const ElectionVotingApp = () => {
       const sigma_b64 = credential.sigma_b64;
       const voter_credential = credential.voter_credential_id;
 
-      if (!voter_credential){
+      if (!voter_credential) {
         throw new Error("Voter credential ID not valid.  you are not eligible in this election.");
       }
       console.log('Using credential S:', S_b64);
@@ -393,82 +411,82 @@ const ElectionVotingApp = () => {
       const candidateIds = positions.map(positionId => electionVotes[positionId]);
       console.log('Selected candidate IDs:', candidateIds);
 
-      const voteData = { 
-      candidate_ids: candidateIds,
-      election_id: electionId,
-      timestamp: new Date().toISOString()
-    };
-    console.log('✓ Vote data structure prepared');
+      const voteData = {
+        candidate_ids: candidateIds,
+        election_id: electionId,
+        timestamp: new Date().toISOString()
+      };
+      console.log('✓ Vote data structure prepared');
 
-     console.log('=== STEP 5: PERFORMING HYBRID ENCRYPTION ===');
+      console.log('=== STEP 5: PERFORMING HYBRID ENCRYPTION ===');
 
-     const encryptionResult = await encryptVoteHybrid(voteData, election.public_key);
-     console.log('✓ Vote encrypted with AES-GCM');
-    console.log('✓ AES key encrypted with RSA-OAEP');
-    console.log("AES key: ", encryptionResult.aes_key_wrapped);
-    console.log('✓ Encryption result keys:', Object.keys(encryptionResult));
+      const encryptionResult = await encryptVoteHybrid(voteData, election.public_key);
+      console.log('✓ Vote encrypted with AES-GCM');
+      console.log('✓ AES key encrypted with RSA-OAEP');
+      console.log("AES key: ", encryptionResult.aes_key_wrapped);
+      console.log('✓ Encryption result keys:', Object.keys(encryptionResult));
 
-     console.log('=== STEP 6: CREATING SERIAL COMMITMENT ===');
+      console.log('=== STEP 6: CREATING SERIAL COMMITMENT ===');
 
-    const serialCommitment = await sha256(S_b64 ? base64Decode(S_b64) : new Uint8Array());
-    console.log('✓ Serial commitment created (SHA-256 of S)');
-    console.log('serial commitment: ', serialCommitment);
-    console.log('✓ Commitment length:', serialCommitment.length);
+      const serialCommitment = await sha256(S_b64 ? base64Decode(S_b64) : new Uint8Array());
+      console.log('✓ Serial commitment created (SHA-256 of S)');
+      console.log('serial commitment: ', serialCommitment);
+      console.log('✓ Commitment length:', serialCommitment.length);
 
-    console.log('=== STEP 7: CONSTRUCTING SECURE PAYLOAD ===');
+      console.log('=== STEP 7: CONSTRUCTING SECURE PAYLOAD ===');
 
-    const payload = {
-      election_id: electionId,
-      voter_credential_id: voter_credential,
-      candidate_ciphertext: encryptionResult.candidate_ciphertext,  // AES-encrypted vote
-      aes_key_wrapped: encryptionResult.aes_key_wrapped,            // RSA-encrypted AES key
-      credential_sig: sigma_b64,                          // Credential signature
-      serial_commitment: base64Encode(serialCommitment),            // Prevents double voting
-      timestamp: new Date().toISOString()
-    };
+      const payload = {
+        election_id: electionId,
+        voter_credential_id: voter_credential,
+        candidate_ciphertext: encryptionResult.candidate_ciphertext,  // AES-encrypted vote
+        aes_key_wrapped: encryptionResult.aes_key_wrapped,            // RSA-encrypted AES key
+        credential_sig: sigma_b64,                          // Credential signature
+        serial_commitment: base64Encode(serialCommitment),            // Prevents double voting
+        timestamp: new Date().toISOString()
+      };
 
-    console.log('✓ Base payload constructed');
-    console.log("payload before signing: ", payload);
-    console.log('✓ Payload fields:', Object.keys(payload));
+      console.log('✓ Base payload constructed');
+      console.log("payload before signing: ", payload);
+      console.log('✓ Payload fields:', Object.keys(payload));
 
-    // STEP 2I: DIGITAL SIGNATURE
-    console.log('=== STEP 8: SIGNING PAYLOAD WITH VOTER KEY ===');
-    
-    const signedPayload = await signVotePayload(payload, voterId);
-    console.log('✓ Payload signed with voter private key (PKCS#1 v1.5.)');
-    console.log('✓ Signature added to payload');
-    console.log("signature: ", signedPayload.signature);
-    // STEP 2J: FINAL VALIDATION
-    console.log('=== STEP 9: FINAL PAYLOAD VALIDATION ===');
-    
-    const requiredFields = [
-      'election_id', 
-      'voter_credential_id', 
-      'candidate_ciphertext', 
-      'aes_key_wrapped',
-      'credential_sig', 
-      'serial_commitment', 
-      'timestamp',
-      'signature'
-    ];
-    
-    const missingFields = requiredFields.filter(field => !signedPayload[field]);
-    if (missingFields.length > 0) {
-      throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
-    }
-    
-    console.log('✓ All required fields present');
-    console.log('✓ Final payload ready for submission');
+      // STEP 2I: DIGITAL SIGNATURE
+      console.log('=== STEP 8: SIGNING PAYLOAD WITH VOTER KEY ===');
 
-    // STEP 2K: SECURE SUBMISSION
-    console.log('=== STEP 10: SUBMITTING SECURE VOTE ===');
-    console.log("final signed payload: ", signedPayload);
-    console.log("Final payload structure:", {
-      ...signedPayload,
-      signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging
-      candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
-      aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
-    });
+      const signedPayload = await signVotePayload(payload, voterId);
+      console.log('✓ Payload signed with voter private key (PKCS#1 v1.5.)');
+      console.log('✓ Signature added to payload');
+      console.log("signature: ", signedPayload.signature);
+      // STEP 2J: FINAL VALIDATION
+      console.log('=== STEP 9: FINAL PAYLOAD VALIDATION ===');
+
+      const requiredFields = [
+        'election_id',
+        'voter_credential_id',
+        'candidate_ciphertext',
+        'aes_key_wrapped',
+        'credential_sig',
+        'serial_commitment',
+        'timestamp',
+        'signature'
+      ];
+
+      const missingFields = requiredFields.filter(field => !signedPayload[field]);
+      if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      console.log('✓ All required fields present');
+      console.log('✓ Final payload ready for submission');
+
+      // STEP 2K: SECURE SUBMISSION
+      console.log('=== STEP 10: SUBMITTING SECURE VOTE ===');
+      console.log("final signed payload: ", signedPayload);
+      console.log("Final payload structure:", {
+        ...signedPayload,
+        signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging
+        candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
+        aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
+      });
 
       // Generate AES key for vote encryption
       // const aesKey = crypto.getRandomValues(new Uint8Array(32));
@@ -724,6 +742,7 @@ const ElectionVotingApp = () => {
                   {Object.entries(
                     getElectionCandidates(selectedElection.id).reduce((acc, candidate) => {
                       const position = candidate.position.position_name;
+                      console.log("candidate position name: ", candidate.position.position_name);
                       if (!acc[position]) acc[position] = [];
                       acc[position].push(candidate);
                       return acc;
@@ -821,8 +840,8 @@ const ElectionVotingApp = () => {
                       onClick={() => submitVote(selectedElection.id)}
                       disabled={!hasAnyVotes(selectedElection.id) || submittingVote}
                       className={`w-full py-4 px-6 rounded-xl font-semibold text-lg transition-all duration-300 ${hasAnyVotes(selectedElection.id) && !submittingVote
-                          ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
-                          : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg hover:shadow-xl transform hover:scale-105'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
                         }`}
                     >
                       {submittingVote ? (

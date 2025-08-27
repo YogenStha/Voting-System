@@ -603,7 +603,7 @@ const ElectionVotingApp = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-2xl shadow-xl">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
           <p className="text-gray-600 mt-4 text-center">Loading elections...</p>
         </div>
       </div>
@@ -663,7 +663,7 @@ const ElectionVotingApp = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <Vote className="h-8 w-8 text-blue-600" />
+              <Vote className="h-8 w-8 text-indigo-600" />
               <h1 className="text-2xl font-bold text-gray-800">Election Portal</h1>
             </div>
             <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -680,7 +680,7 @@ const ElectionVotingApp = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl p-6 sticky top-8">
               <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
-                <Calendar className="h-5 w-5 mr-2 text-blue-600" />
+                <Calendar className="h-5 w-5 mr-2 text-indigo-600" />
                 Active Elections
               </h2>
               <div className="space-y-3">
@@ -707,7 +707,7 @@ const ElectionVotingApp = () => {
                       </div>
                     )}
                     {credentials[election.id] && (
-                      <div className="flex items-center text-blue-600 text-xs mt-1">
+                      <div className="flex items-center text-indigo-600 text-xs mt-1">
                         <User className="h-3 w-3 mr-1" />
                         Credential Ready
                       </div>
@@ -723,7 +723,7 @@ const ElectionVotingApp = () => {
             {selectedElection && (
               <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
                 {/* Election Header */}
-                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-8 text-white">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
                   <h2 className="text-3xl font-bold mb-4">{selectedElection.name}</h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-100">
                     <div>
@@ -796,7 +796,7 @@ const ElectionVotingApp = () => {
                                     </div>
                                   )}
                                   {candidate.is_verified && (
-                                    <CheckCircle className="h-5 w-5 text-blue-500 -mt-2 ml-16" />
+                                    <CheckCircle className="h-5 w-5 text-indigo-500 -mt-2 ml-16" />
                                   )}
                                 </div>
 

@@ -1,0 +1,92 @@
+[
+  {
+    "election": "Presidential Election",
+    "position": "President",
+    "candidate": {
+      "name": "Aarav Sharma",
+      "party": "Unity Party",
+      "votes": 1203400
+    }
+  },
+  {
+    "election": "Presidential Election",
+    "position": "President",
+    "candidate": {
+      "name": "Sneha Karki",
+      "party": "Progressive Front",
+      "votes": 1109800
+    }
+  },
+  {
+    "election": "Presidential Election",
+    "position": "President",
+    "candidate": {
+      "name": "Ramesh Thapa",
+      "party": "Green Future",
+      "votes": 450200
+    }
+  },
+  {
+    "election": "Presidential Election",
+    "position": "President",
+    "candidate": {
+      "name": "Binita Joshi",
+      "party": "People's Voice",
+      "votes": 320000
+    }
+  },
+  {
+    "election": "Presidential Election",
+    "position": "President",
+    "candidate": {
+      "name": "Kiran Adhikari",
+      "party": "New Dawn",
+      "votes": 280500
+    }
+  },
+  {
+    "election": "Parliamentary Election",
+    "position": "Prime Minister",
+    "candidate": {
+      "name": "Maya Thapa",
+      "party": "Progressive Alliance",
+      "votes": 980230
+    }
+  },
+  {
+    "election": "Parliamentary Election",
+    "position": "Prime Minister",
+    "candidate": {
+      "name": "Sujan Rai",
+      "party": "National Reform",
+      "votes": 870400
+    }
+  },
+  {
+    "election": "Parliamentary Election",
+    "position": "Prime Minister",
+    "candidate": {
+      "name": "Anjali Gurung",
+      "party": "Green Future",
+      "votes": 610000
+    }
+  },
+  {
+    "election": "Parliamentary Election",
+    "position": "Prime Minister",
+    "candidate": {
+      "name": "Dipesh Khadka",
+      "party": "Unity Party",
+      "votes": 540300
+    }
+  },
+  {
+    "election": "Parliamentary Election",
+    "position": "Prime Minister",
+    "candidate": {
+      "name": "Nisha Shrestha",
+      "party": "People's Voice",
+      "votes": 430100
+    }
+  }
+]

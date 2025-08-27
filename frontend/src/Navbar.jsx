@@ -89,7 +89,7 @@ const Navbar = () => {
           <a href="#services" className="block text-gray-300 hover:text-indigo-400 font-bold">
             Services
           </a>
-          <a href="#" className="block text-gray-300 hover:text-indigo-400 font-bold">
+          <a href="#contact" className="block text-gray-300 hover:text-indigo-400 font-bold">
             Contact
           </a>
           <a href="/login" className="block text-gray-300 hover:text-indigo-400 font-bold">

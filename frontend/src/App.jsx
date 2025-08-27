@@ -11,6 +11,7 @@ import VotingPage from "./as.jsx";
 import ProtectedRoute from './ProtectedRoute.jsx';
 import UserCards from "./Candidates.jsx";
 import CandidateForm from "./CandidateForm.jsx"
+import ElectionResults from "./Result.jsx";
 // add protectedRoutes.jsx later to allow only logged in users to access certain routes
 function App() {
   useAuthTokenRefresh(1); // Refresh token every 4 minutes by default
@@ -27,6 +28,7 @@ function App() {
         <Route path="/RegistrationOptions" element={<Option />} />
         <Route path="/register" element={<Register />} />
         <Route path="/CandidateForm" element={<CandidateForm/>}/>
+        <Route path="/result" element={<ElectionResults/>}/>
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <ElectionDetails />

@@ -1,0 +1,6 @@
+*.pyc
+__pycache__/
+
+# Django static/build
+frontend/dist/
+frontend/node_modules/

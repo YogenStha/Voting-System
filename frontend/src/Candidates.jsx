@@ -7,13 +7,34 @@ function UserCards() {
 
 
   useEffect(() => {
-    fetch('./JsonData.json')
-      .then(response => response.json())
-      .then(data => setUsers(data))
-      .catch(error => console.error('Error fetching data:', error));
+
+    const handleCandidate = async (e) => {
+      // e.preventDefault();
+      setLoading(true);
+      const response = await fetch("api/candidate-details/", {
+      method: "GET"
+     
+      });
+
+      const data = await response.json();
+
+      if(response.ok){
+        console.log("candidate detals: ", data.candidate_detail);
+        setCandidates(data.candidate_detail);
+        setLoading(false);
+        console.log("candidate image: ", candidates.image);
+      }
+      else{
+        console.log("error");
+      }
+    };
+      handleCandidate();
+      setLoading(false);
   }, []);
 
-  if (loading) return <p>Loading...</p>;
+
+
+  if (Loading) return <p>Loading...</p>;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

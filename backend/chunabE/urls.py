@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html')),
-    # path('api/candidate-details/', CandidateDetailsView.as_view(), name='candidate-details'),
+    path('api/candidate-details/', CandidateDetailsView.as_view(), name='candidate-details'),
     path('api/register/', UserRegisterView.as_view(), name='register'),
     path('api/candidate-register/', CandidateRegisterView.as_view(), name='candidate_register'),
     path('api/login/', UserLoginJWTView.as_view(), name='user_login'),
@@ -26,5 +26,3 @@ urlpatterns = [
     
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

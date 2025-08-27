@@ -37,15 +37,16 @@ def debug_media_config(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('chunabE.urls')),  # Include the chunabE app URLs
+    # path('', include('chunabE.urls')),  # Include the chunabE app URLs
     path("api-auth/", include("rest_framework.urls")),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 # Media serving
 print(f"DEBUG: {settings.DEBUG}")  # This will print in your console
 print(f"MEDIA_URL: {settings.MEDIA_URL}")
 print(f"MEDIA_ROOT: {settings.MEDIA_ROOT}")
 
+urlpatterns += [
+    path('', include('chunabE.urls')),  # This must be LAST
+]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

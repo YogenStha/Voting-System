@@ -197,20 +197,23 @@ class CandidateSerializer(serializers.ModelSerializer):
     election = ElectionMiniSerializer()
     
     # image = serializers.SerializerMethodField()
+    
+    # def get_image(self, obj):
+    #     if obj.image:
+            
+    #         request = self.context.get('request')
+    #         url = obj.image.url
+    #         print(f"Generated image URL: {url}")
+           
+    #         return url
+    #     else:
+    #         return None
+    
     class Meta:
         model = Candidate
         fields = ['id', 'name', 'image', 'manifesto', 'party', 'is_verified', 'election', 'position']
     
-    # def get_image(self, obj):
-    #     if obj.image:
-    #         import os
-    #         request = self.context.get('request')
-    #         url = request.build_absolute_uri(obj.image.url)
-    #         print(f"Generated image URL: {url}")
-    #         print(f"File exists: {os.path.exists(obj.image.path)}")
-    #         return request.build_absolute_uri(obj.image.url)
-    #     else:
-    #         return None  
+      
 class VoterCredendentialSerializer(serializers.ModelSerializer):
     
     class Meta:

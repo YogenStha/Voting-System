@@ -55,19 +55,7 @@ class UserAdmin(BaseUserAdmin, ModelAdmin):
 
 @register(Candidate)
 class CandidateAdmin(ModelAdmin):
-    # list_display = ('name', 'party', 'position', 'manifesto', 'is_verified', 'election')
-    # search_fields = ('user__username', 'party__name', 'position__name')
-    
-    # list_filter = ('is_active')
-    
-    # fieldsets = (
-    #     (None, {
-    #         "fields": (
-    #             'name', 'party', 'position', 'image', 'manifesto', 'candidate_id', 'is_verified', 'election'
-    #         ),
-    #     }),
-    # )
-    
+   
     list_display = (
         'name', 
         'party', 
@@ -145,12 +133,6 @@ class CandidateAdmin(ModelAdmin):
         return "No image uploaded"
     display_image_preview.short_description = "Current Image"
     
-    # def image_preview(self, obj):
-    #     if obj.image and hasattr(obj.image, 'url'):
-    #         return format_html(f'<img src="{obj.image.url}" width="150" height="150" style="object-fit:contain;" />' )
-    #     return "No Image"
-
-    # image_preview.short_description = "Image Preview"
     
 @register(Party)
 class PartyAdmin(ModelAdmin):

@@ -129,12 +129,7 @@ class UserTokenSerializer(TokenObtainPairSerializer):
             
         attrs["username"] = user.username
         self.user = user
-        
-        # private_key_pem, public_key_pem, fingerprint = rsa_keys()
-        # user.public_key = public_key_pem
-        # user.fingerprint = fingerprint
-        
-        
+    
         data = super().validate(attrs)
         data.update({
             "user_id": user.id,
@@ -216,7 +211,11 @@ class CandidateSerializer(serializers.ModelSerializer):
     #         return request.build_absolute_uri(obj.image.url)
     #     else:
     #         return None  
-
+class VoterCredendentialSerializer(serializers.ModelSerializer):
+    
+    class Meta:
+        model = VoterCredential
+        fields = ['serial_number_b64']
     
 class ElectionSerializer(serializers.ModelSerializer):
     candidates = CandidateSerializer(many=True)
@@ -231,103 +230,6 @@ class ElectionSerializer(serializers.ModelSerializer):
         if data['is_active'] == 0:
             raise serializers.ValidationError("Election must be active.")
         return data
-
-
-    
-# class VoteSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = User
-#         fields = ['voter', 'candidate', 'election']
-    
-#     def validate(self, data):
-#         if not data['voter'].is_authenticated:
-#             raise serializers.ValidationError("User must be authenticated to vote.")
-#         if not data['candidate'].is_verified:
-#             raise serializers.ValidationError("Candidate must be verified to receive votes.")
-#         return data
-    
-#     def create(self, validated_data):
-#         voter = validated_data['voter']
-#         candidate = validated_data['candidate']
-#         election = validated_data['election']
-        
-#         if Vote.objects.filter(voter=voter, election=election).exists():
-#             raise serializers.ValidationError("You have already voted in this election.")
-        
-#         vote = Vote.objects.create(voter=voter, candidate=candidate, election=election)
-#         return vote
-
-# class singleVoteSerializer(serializers.ModelSerializer):
-#     position_id = serializers.IntegerField()
-#     candidate_id = serializers.CharField()
-#     signature = serializers.CharField()
-    
-#     class Meta:
-#         model = Vote
-#         fields = ['position_id', 'candidate_id', 'signature']
-        
-#     def validate(self, data):
-#         try:
-#             print(f"signature: {base64.b64decode(data["signature"]).hex()}")
-#             candidate = Candidate.objects.get(id=data['candidate_id'])
-#             if not candidate.is_verified:
-#                 raise serializers.ValidationError("Candidate must be verified to receive votes.")
-#         except Candidate.DoesNotExist:
-#             raise serializers.ValidationError("Candidate does not exist.")
-        
-#         if candidate.position.id != data['position_id']:
-#             raise serializers.ValidationError("Candidate does not belong to the given position")
-        
-#         return data
-    
-# class VoteSubmisionSerializer(serializers.Serializer):
-#     voter_id = serializers.CharField()
-#     election_id = serializers.IntegerField()
-#     votes = singleVoteSerializer(many=True)
-    
-#     def validate(self, data):
-#         try:
-#             voter = User.objects.get(id=data['voter_id'])
-#         except User.DoesNotExist:
-#             raise serializers.ValidationError("Voter does not exist")
-
-#         # Validate election exists and is active
-#         try:
-#             election = Election.objects.get(id=data['election_id'])
-#         except Election.DoesNotExist:
-#             raise serializers.ValidationError("Election does not exist")
-
-#         if not election.is_active:
-#             raise serializers.ValidationError("Election is not active")
-        
-#         if Vote.objects.filter(voter=voter, election=election).exists():
-#             raise serializers.ValidationError("You have already voted in this election.")
-
-#         # Attach voter and election to context for nested serializer validation if needed
-#         self.context['voter'] = voter
-#         self.context['election'] = election
-        
-#         return data
-    
-#     def create(self, validated_data):
-#         voter = self.context['voter']
-#         election = self.context['election']
-#         votes_data = validated_data['votes']
-        
-#         vote_instances = []
-#         for vote_data in votes_data:
-#             candidate = Candidate.objects.get(id=vote_data['candidate_id'])
-#             vote = Vote.objects.create(
-#                 voter=voter,
-#                 candidate=candidate,
-#                 election=election,
-#                 signature=vote_data['signature'],
-#                 is_committed=True
-#             )
-#             vote_instances.append(vote)
-
-        
-#         return vote_instances
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

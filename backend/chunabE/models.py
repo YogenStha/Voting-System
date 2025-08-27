@@ -65,12 +65,6 @@ class Candidate(models.Model):
     is_verified = models.BooleanField(default=False)
     election = models.ForeignKey('Election', related_name='candidates', on_delete=models.CASCADE)
     
-    # def image_privew(self):
-    #     return mark_safe(f'<img src="{self.image.url}" alt = "" width = "300"/>')    
-    # def admin_image_privew(self):
-    #     return mark_safe(f'<img src="{self.image.url}" alt = "" width = "100" style="border: 1px solid #000;border-radius:50%;"/>')    
-    # admin_image_privew.short_description = "Image"
-    
     def __str__(self):
         return f"{self.name} - ({self.party.party_name})"
 
@@ -89,7 +83,6 @@ class Position(models.Model):
     
 class Vote(models.Model):
     election = models.ForeignKey('Election', on_delete=models.CASCADE, db_index=True)
-    # voter_credential = models.ForeignKey('VoterCredential', on_delete=models.CASCADE)
     candidate_ciphertext = models.BinaryField()       # AES-encrypted ballot
     aes_key_wrapped = models.BinaryField()            # AES key encrypted with election RSA
     credential_sig = models.BinaryField()             # EA signature over credential serial
@@ -138,12 +131,6 @@ class Block(models.Model):
         
         super().save(*args, **kwargs)
         
-    
-# class Revote(models.Model):
-#     old_vote_id = models.CharField(max_length=20, unique=True)
-   
-#     timestamp = models.DateTimeField(auto_now_add=True)
-    
 class Election(models.Model):
     name = models.CharField(max_length=100)
     salt = models.CharField(max_length=128, blank=True, null=True)
@@ -164,13 +151,11 @@ class Election(models.Model):
             self.private_key = encrypt_private_key(private_key)
             
         new_election = self.pk is None
-        super().save(*args, **kwargs)
         if new_election:
             users = User.objects.filter(college = self.name)
-            
             for user in users:
                 Eligibility.objects.get_or_create(election = self, user = user, issued = True)
-        
+        super().save(*args, **kwargs)
     
     def get_private_key(self):
         return decrypt_private_key(self.private_key)

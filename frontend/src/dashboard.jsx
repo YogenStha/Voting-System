@@ -48,13 +48,29 @@ const ElectionVotingApp = () => {
 
   console.log("candidate details: ", candidates);
   // Load credentials from localStorage
-  const loadCredentials = () => {
+  const loadCredentials = async () => {
     if (!voterId) {
       console.warn('No voter ID found, cannot load credentials');
       return;
     }
 
     try {
+
+      const response = await fetch(`http://localhost:8000/api/voter/credential/`, {
+          method: 'GET',
+          headers: {
+            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        let credential = await response.json();
+        console.log("voter credential sent (backend): ", credential.voter_credential.serial_number_b64);
+        let S_b64 = credential.voter_credential.serial_number_b64
+        let S = base64Decode(S_b64);
+        console.log("decoded S: ", S);
+        localStorage.setItem('S', JSON.stringify(Array.from(S)));
+        
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
@@ -156,6 +172,8 @@ const ElectionVotingApp = () => {
             voter_credential = data.voter_credential_id;
             console.log("Received voter credential id:", voter_credential);
             console.log("received sigma from backend:", sigma_b64);
+            let S = base64Decode(S_b64);
+            console.log('S decoded sent fron backend: ', S);
           } else {
             throw new Error('Invalid response format from EA');
           }
@@ -487,35 +505,6 @@ const ElectionVotingApp = () => {
         candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
         aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
       });
-
-      // Generate AES key for vote encryption
-      // const aesKey = crypto.getRandomValues(new Uint8Array(32));
-
-      // // Encrypt the vote data
-      // const voteData = new TextEncoder().encode(JSON.stringify({ candidate_ids: candidateIds }));
-      // const voteCiphertext = await encryptWithAES(aesKey, voteData);
-
-      // // Encrypt AES key with election public key
-      // const aesKeyWrapped = await encryptWithRSA(election.public_key, aesKey);
-
-      // // Create serial commitment (hash of S)
-      // const serialCommitment = await sha256(S);
-
-      // // Prepare payload according to your backend expectations
-      // const payload = {
-      //   election_id: electionId,
-      //   voter_credential_id: voter_credential,
-      //   candidate_ciphertext: base64Encode(voteCiphertext),
-      //   aes_key_wrapped: base64Encode(aesKeyWrapped),
-      //   credential_sig: base64Encode(sigma),
-      //   serial_commitment: base64Encode(serialCommitment),
-      //   timestamp: new Date().toISOString()
-      // };
-
-      // const signed_payload = signMessage(payload, voterId);
-      // payload.signature = base64Encode(signed_payload);
-
-      // console.log("Submitting vote payload:", payload);
 
       const response = await fetch("http://localhost:8000/api/vote/", {
         method: "POST",

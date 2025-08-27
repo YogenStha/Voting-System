@@ -76,7 +76,24 @@ class CandidateRegisterView(APIView):
 class UserLoginJWTView(TokenObtainPairView):
     serializer_class = UserTokenSerializer
     
+class VoterCredentialSendView(APIView):
     
+    def get(self, request):
+        if request.user.is_authenticated:
+            print("get credential S")
+            
+            credential = VoterCredential.objects.get(user = request.user.id)
+            credential_data = VoterCredendentialSerializer(credential).data
+            if credential_data:
+                print("credential exist")
+                return Response({
+                    "voter_credential": credential_data
+                    })
+            else:
+                return Response({
+                    "error": "credential doesnot exist"
+                })
+                
 class ElectionView(APIView):
     
     def get(self, request):
@@ -255,16 +272,15 @@ class AnonymousVoteView(generics.CreateAPIView):
                     
                 print(f"valid candidate id: {decrypted_vote_data['candidate_ids'][0]} and election id: {decrypted_vote_data['election_id']}")
                 # Create the vote
-                tx_hash = hashlib.sha256(
-                    json.dumps(decrypted_vote_data, sort_keys=True).encode("utf-8")).hexdigest()
+                
                 
                 previous_votes = Vote.objects.filter(
                                 election=election,
                                 serial_commitment=serial_commitment,
                                 is_latest=True  # add this field to mark the latest vote
                             )
-                # Mark them as no longer latest
-                previous_votes.update(is_latest=False)
+               
+                
                 
                 if previous_votes.exists():
                     for prev_vote in previous_votes:
@@ -273,14 +289,27 @@ class AnonymousVoteView(generics.CreateAPIView):
                                 base64.b64encode(prev_vote.candidate_ciphertext).decode('utf-8'),
                                 decrypt_aes_key(election, base64.b64encode(prev_vote.aes_key_wrapped).decode('utf-8'))
                             )
+                            print("previous vote decrypted: ", prev_vote_data)
                             for prev_cid in prev_vote_data.get("candidate_ids", []):
-                                prev_tally = Tally.objects.filter(election=election, candidate_id=prev_cid).first()
-                                if prev_tally and prev_tally.vote_count > 0:
-                                    prev_tally.vote_count -= 1
-                                    prev_tally.save()
+                                try:
+                                    prev_tally = Tally.objects.get(election=election, candidate_id=prev_cid)
+                                    if prev_tally.vote_count > 0:
+                                        prev_tally.vote_count -= 1
+                                        prev_tally.save()
+                                        print(f"Subtracted 1 vote from candidate {prev_cid}, new count: {prev_tally_obj.vote_count}")
+                                    else:
+                                        print(f"Warning: Tally for candidate {prev_cid} already at 0, cannot subtract")
+                                except Tally.DoesNotExist:
+                                    print(f"Warning: No tally found for candidate {prev_cid} in election {election.id}")
+                                except Exception as tally_error:
+                                    logger.error(f"Error adjusting tally for candidate {prev_cid}: {str(tally_error)}")
                         except Exception as e:
                             logger.warning(f"Failed to adjust tally for previous vote: {str(e)}")
-
+                 # Mark them as no longer latest
+                previous_votes.update(is_latest=False)
+                
+                tx_hash = hashlib.sha256(
+                    json.dumps(decrypted_vote_data, sort_keys=True).encode("utf-8")).hexdigest()
                 
                 vote = Vote.objects.create(
                     election=election,
@@ -302,6 +331,7 @@ class AnonymousVoteView(generics.CreateAPIView):
                     )
                     tally.vote_count += 1
                     tally.save()
+                    print(f"Added 1 vote to candidate {cid}, new count: {tally.vote_count}")
 
                 # Update vote history for the authenticated user
                 # This is for UI purposes and doesn't compromise anonymity

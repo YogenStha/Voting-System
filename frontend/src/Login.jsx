@@ -28,6 +28,7 @@ const VoterLogin = () => {
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
       sessionStorage.setItem("user_id", data.user_id);
+      
       const S = crypto.getRandomValues(new Uint8Array(32));
       localStorage.setItem('S', JSON.stringify(Array.from(S)));
 

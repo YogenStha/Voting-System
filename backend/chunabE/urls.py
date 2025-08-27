@@ -11,6 +11,7 @@ urlpatterns = [
     path('api/register/', UserRegisterView.as_view(), name='register'),
     path('api/candidate-register/', CandidateRegisterView.as_view(), name='candidate_register'),
     path('api/login/', UserLoginJWTView.as_view(), name='user_login'),
+    path('api/voter/credential/', VoterCredentialSendView.as_view(), name='voter_credential'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/elections/', ElectionView.as_view(), name='election_list'),
      path('api/elections/<int:election_id>/credential/', CredentialIssueView.as_view(), 

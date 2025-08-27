@@ -60,14 +60,18 @@ class CandidateRegisterView(APIView):
             print(serializer.errors)
             return Response({"error": "Registration failed."}, status=status.HTTP_400_BAD_REQUEST)
         
-class CandidateDetailsView(APIView):
+# class CandidateDetailsView(APIView):
     
-    def get(self, request):
-        
-        candidate = Candidate.objects.all()
-        serializer = CandidateSerializer(candidate, many=True)
-        print("serializer data: ", serializer.data)
-        return Response({"candidate_detail": serializer.data})
+#     def get(self, request):
+#         import os
+#         from django.conf import settings
+
+#         print(f"media root: {settings.MEDIA_ROOT}")
+
+#         candidate = Candidate.objects.all()
+#         # serializer = CandidateSerializer(candidate, many=True, context = {'request': request})
+#         print("serializer data: ", serializer.data)
+#         return Response({"candidate_detail": serializer.data})
         
 class UserLoginJWTView(TokenObtainPairView):
     serializer_class = UserTokenSerializer

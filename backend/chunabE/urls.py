@@ -2,10 +2,12 @@ from django.urls import path
 from django.views.generic import TemplateView
 from .views import *
 from rest_framework_simplejwt.views import TokenRefreshView
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('', TemplateView.as_view(template_name='index.html')),
-    path('api/candidate-details/', CandidateDetailsView.as_view(), name='candidate-details'),
+    # path('api/candidate-details/', CandidateDetailsView.as_view(), name='candidate-details'),
     path('api/register/', UserRegisterView.as_view(), name='register'),
     path('api/candidate-register/', CandidateRegisterView.as_view(), name='candidate_register'),
     path('api/login/', UserLoginJWTView.as_view(), name='user_login'),
@@ -22,3 +24,6 @@ urlpatterns = [
     path('<path:path>', TemplateView.as_view(template_name='index.html')),
     
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

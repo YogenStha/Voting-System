@@ -18,7 +18,7 @@ from datetime import timedelta
 
 AUTH_USER_MODEL = 'chunabE.User'
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
@@ -162,6 +162,15 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+print(f"BASE_DIR: {BASE_DIR}")
+print(f"MEDIA_ROOT: {MEDIA_ROOT}")
+print(f"Path exists: {os.path.exists(MEDIA_ROOT)}")
+
+
+image_path = os.path.join(MEDIA_ROOT, 'candidates', '12_admitcard.jpg')
+print(f"Image path: {image_path}")
+print(f"Image exists: {os.path.exists(image_path)}")
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

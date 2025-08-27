@@ -15,7 +15,12 @@ export default defineConfig({
     },    // ensures all assets (images, fonts, etc.) go into dist/assets
   },
   server: {
+    port:5173,
     proxy: {
+      '/media': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,

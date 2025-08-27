@@ -1,7 +1,8 @@
+import React from 'react'; 
 import Navbar from "./Navbar.jsx";
 import Home from "./Home.jsx";
 import Login from "./Login.jsx";
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, BrowserRouter } from 'react-router-dom';
 import Register from "./Register.jsx";
 import Option from "./RegistrationOptions.jsx";
 import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
@@ -19,6 +20,7 @@ function App() {
   return (
     <>
       {!hideNavbarPaths.includes(location.pathname) && <Navbar />}
+      
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
@@ -32,6 +34,7 @@ function App() {
         <Route path="/voting" element={<VotingPage />} />
         <Route path="/Candidates" element={<UserCards/>}/>
       </Routes>
+      
     </>
   );
 

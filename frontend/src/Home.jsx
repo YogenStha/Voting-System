@@ -1,3 +1,4 @@
+import React from 'react'; 
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
 import chunabe from "./assets/chunabe.png";

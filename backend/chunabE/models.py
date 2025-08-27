@@ -164,11 +164,13 @@ class Election(models.Model):
             self.private_key = encrypt_private_key(private_key)
             
         new_election = self.pk is None
+        super().save(*args, **kwargs)
         if new_election:
             users = User.objects.filter(college = self.name)
+            
             for user in users:
                 Eligibility.objects.get_or_create(election = self, user = user, issued = True)
-        super().save(*args, **kwargs)
+        
     
     def get_private_key(self):
         return decrypt_private_key(self.private_key)

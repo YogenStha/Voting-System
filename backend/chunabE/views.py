@@ -492,6 +492,13 @@ class UserUploadImg(APIView):
             "User_Img":user.image.url
             })
 
+class ElectionResultView(APIView):
+    def get(self, request):
+        election = Election.objects.all()
+        serializer = ElectionResultSerializer(instance=election, many=True)
+        
+        return Response(serializer.data)
+
 class UserDetailsView(APIView):
     
     def get(self, request):

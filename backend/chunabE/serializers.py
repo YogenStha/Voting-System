@@ -2,7 +2,7 @@ import threading
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import serializers
-from .models import User, Candidate, Election, Party, Position, Vote, VoteHistory, Eligibility, VoterCredential
+from .models import User, Candidate, Election, Party, Position, Vote, VoteHistory, Eligibility, VoterCredential, Tally
 from utils import verify_mail
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
@@ -144,7 +144,6 @@ class UserTokenSerializer(serializers.Serializer):
             
         data["username"] = user.username
         self.user = user
-        
         
         return data
 
@@ -410,3 +409,25 @@ class UserVoteHistorySerializer(serializers.Serializer):
         child=serializers.IntegerField(),
         read_only=True
     )
+    
+# serializers.py
+
+class CandidateVoteSerializer(serializers.ModelSerializer):
+    candidate = CandidateSerializer()  # Nested candidate details
+
+    class Meta:
+        model = Tally
+        fields = ['candidate', 'vote_count']
+
+
+class ElectionResultSerializer(serializers.ModelSerializer):
+    candidates = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Election
+        fields = ['id', 'name', 'start_date', 'end_date', 'is_active', 'candidates']
+
+    def get_candidates(self, obj):
+        # Get all Tally entries for this election
+        tallies = Tally.objects.filter(election=obj)
+        return CandidateVoteSerializer(tallies, many=True).data

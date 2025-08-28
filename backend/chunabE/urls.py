@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/user/eligibility/', user_eligibility_view, name='user-eligibility'),
     path('api/elections/<int:election_id>/decrypt/', decrypt_votes_view, name='decrypt-votes'),
     path('api/user/upload_profile/', UserUploadImg.as_view(), name='upload-image'),
+    path('api/election/result/', ElectionResultView.as_view(), name = 'election_result'),
     path('<path:path>', TemplateView.as_view(template_name='index.html')),
     
 ]

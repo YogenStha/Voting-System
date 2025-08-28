@@ -30,14 +30,9 @@ const VoterLogin = () => {
 
       if (response.ok) {
 
-        // localStorage.setItem("access_token", data.access);
-        // localStorage.setItem("refresh_token", data.refresh);
-      
         const S = crypto.getRandomValues(new Uint8Array(32));
         localStorage.setItem("S", JSON.stringify(Array.from(S)));
         
-        
-        console.log("otp: ", data.otp);
         sessionStorage.setItem("VoterId", voterId);
       
         navigate("/OTP");

@@ -11,7 +11,7 @@ function Option() {
           Voter
         </button>
         </a>
-        <a href="/CandidateForm">
+        <a href="/Candidate_Registration">
         <button className="px-8 py-4 bg-green-600 text-white rounded-lg shadow-md hover:bg-green-700 transition duration-300 text-lg">
           Candidates
         </button>

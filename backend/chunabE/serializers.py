@@ -129,11 +129,20 @@ class UserTokenSerializer(TokenObtainPairSerializer):
             
         attrs["username"] = user.username
         self.user = user
-    
+        user_details = {
+            'id': user.id,
+            "voter_id": user.voter_id,
+            "address": user.address,
+            "email": user.email,
+            "name": user.username,
+            
+        }
         data = super().validate(attrs)
         data.update({
-            "user_id": user.id,
+            "user": user_details,
+            
         })
+        print("user data: ", data)
         return data
     
 class CandidateRegisterSerializer(serializers.ModelSerializer):
@@ -233,6 +242,11 @@ class ElectionSerializer(serializers.ModelSerializer):
         if data['is_active'] == 0:
             raise serializers.ValidationError("Election must be active.")
         return data
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'image', 'email', 'voter_id', 'address']
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:

@@ -3,7 +3,7 @@ import Loader from "./Loader";
 
 function UserCards() {
   const [candidates, setCandidates] = useState([]);
-  const [Loading,setLoading] = useState(true)
+  const [loading,setLoading] = useState(false)
 
 
   useEffect(() => {
@@ -34,7 +34,7 @@ function UserCards() {
 
 
 
-  if (Loading) return <p>Loading...</p>;
+  if (loading) return Loader;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">

@@ -44,7 +44,7 @@ const mockElectionData = [
   },
 ];
 
-const ElectionResults = () => {
+const ElectionResultsApp = () => {
   const [elections, setElections] = useState([]);
   const [selectedElection, setSelectedElection] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -223,4 +223,4 @@ const ElectionResults = () => {
   );
 };
 
-export default ElectionResults;
+export default ElectionResultsApp;

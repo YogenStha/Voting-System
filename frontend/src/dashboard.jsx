@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircle } from 'lucide-react';
 import Cookies from 'js-cookie';
 import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
-
+import UserProfileModal from "./UserProfileModal";
 import {
   signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
   encryptVoteHybrid, signVotePayload, processVoteForSubmission
@@ -35,9 +35,16 @@ const ElectionVotingApp = () => {
   const [hasUserKey, setHasUserKey] = useState(false);
   const [credentials, setCredentials] = useState({}); // Store credentials per election
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  
 
-  const voterId = parseInt(sessionStorage.getItem("user_id"), 10);
+  let userStr = sessionStorage.getItem('user');
+  const user = userStr ? JSON.parse(userStr) : null;
+
+  const voterId = user.id;
   console.log('type of Voter ID from session:', typeof voterId);
+  console.log("voter_id: ", voterId);
+  
 
   useEffect(() => {
     fetchElectionData();
@@ -57,20 +64,20 @@ const ElectionVotingApp = () => {
     try {
 
       const response = await fetch(`http://localhost:8000/api/voter/credential/`, {
-          method: 'GET',
-          headers: {
-            "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
-            "Content-Type": "application/json",
-          },
-        });
+        method: 'GET',
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem("access_token")}`,
+          "Content-Type": "application/json",
+        },
+      });
 
-        let credential = await response.json();
-        console.log("voter credential sent (backend): ", credential.voter_credential.serial_number_b64);
-        let S_b64 = credential.voter_credential.serial_number_b64
-        let S = base64Decode(S_b64);
-        console.log("decoded S: ", S);
-        localStorage.setItem('S', JSON.stringify(Array.from(S)));
-        
+      let credential = await response.json();
+      console.log("voter credential sent (backend): ", credential.voter_credential.serial_number_b64);
+      let S_b64 = credential.voter_credential.serial_number_b64
+      let S = base64Decode(S_b64);
+      console.log("decoded S: ", S);
+      localStorage.setItem('S', JSON.stringify(Array.from(S)));
+
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
@@ -307,22 +314,22 @@ const ElectionVotingApp = () => {
   };
 
   const getElectionCandidates = (electionId) => {
-  console.log("Filtering candidates for election: ", electionId)
-  console.log("Available candidates: ", candidates)
+    console.log("Filtering candidates for election: ", electionId)
+    console.log("Available candidates: ", candidates)
 
-  return candidates.filter(candidate => {
-    // Check different possible structures for election ID
-    const candidateElectionId = candidate.election?.id || 
-                                candidate.election_id || 
-                                candidate.electionId ||
-                                candidate.election;
-    
-    console.log("Candidate election Id: ", candidateElectionId);
-    console.log("Target election Id: ", electionId);
+    return candidates.filter(candidate => {
+      // Check different possible structures for election ID
+      const candidateElectionId = candidate.election?.id ||
+        candidate.election_id ||
+        candidate.electionId ||
+        candidate.election;
 
-    return candidateElectionId == electionId;
-  });
-};
+      console.log("Candidate election Id: ", candidateElectionId);
+      console.log("Target election Id: ", electionId);
+
+      return candidateElectionId == electionId;
+    });
+  };
 
   const handleVote = (electionId, positionId, candidateId) => {
     console.log('handleVote called:', { electionId, positionId, candidateId });
@@ -659,9 +666,21 @@ const ElectionVotingApp = () => {
               <Users className="h-4 w-4" />
               <span>{candidates.length} Candidates</span>
             </div>
+            {/* Profile Button */}
+            <button
+              onClick={() => setShowProfile(true)}
+              className="flex items-center space-x-2 bg-indigo-600 text-white px-4 py-2 rounded-xl shadow hover:bg-indigo-700 transition"
+            >
+              <User className="h-5 w-5" />
+              <span>Profile</span>
+            </button>
           </div>
         </div>
       </div>
+
+      {showProfile && (
+        <UserProfileModal user={user} onClose={() => setShowProfile(false)} />
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

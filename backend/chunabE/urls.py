@@ -19,9 +19,11 @@ urlpatterns = [
     
     path('csrf/', csrf_token_view),
     path('api/user/vote-history/', UserVoteHistoryView.as_view(), name='vote-history'),
+    path('api/user/user_detail/', UserDetailsView.as_view()), 
     path('api/vote/', AnonymousVoteView.as_view(), name='submit_vote'),
     path('api/user/eligibility/', user_eligibility_view, name='user-eligibility'),
     path('api/elections/<int:election_id>/decrypt/', decrypt_votes_view, name='decrypt-votes'),
+    path('api/user/upload_profile/', UserUploadImg.as_view(), name='upload-image'),
     path('<path:path>', TemplateView.as_view(template_name='index.html')),
     
 ]

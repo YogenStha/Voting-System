@@ -1,49 +1,67 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storePrivateKey } from './hooks/secureDB';
+import Loader from "./Loader";
 
 const VoterLogin = () => {
   const navigate = useNavigate();
   const [voterId, setVoterId] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false); // <-- lowercase, start false
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
+    setLoading(true);
 
-    const response = await fetch("http://localhost:8000/api/login/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: voterId,
-        password: password
-      }),
-    });
+    try {
+      const response = await fetch("http://localhost:8000/api/login/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: voterId,
+          password: password,
+        }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      localStorage.setItem("access_token", data.access);
-      localStorage.setItem("refresh_token", data.refresh);
-      sessionStorage.setItem("user_id", data.user_id);
-      
-      const S = crypto.getRandomValues(new Uint8Array(32));
-      localStorage.setItem('S', JSON.stringify(Array.from(S)));
+      if (response.ok) {
 
-      console.log("S value: ", S);
-      navigate('/dashboard'); // navigate to the home page after successful login
-    } else {
-      console.error("Login failed:", data);
-      alert("Invalid Voter ID or Password");
+        localStorage.setItem("access_token", data.access);
+        localStorage.setItem("refresh_token", data.refresh);
+        
+
+        const S = crypto.getRandomValues(new Uint8Array(32));
+        localStorage.setItem("S", JSON.stringify(Array.from(S)));
+        
+        let user = data.user;
+        
+        sessionStorage.setItem("user", JSON.stringify(user));
+
+        navigate("/dashboard");
+      } else {
+        console.error("Login failed:", data);
+        alert("Invalid Voter ID or Password");
+      }
+    } catch (err) {
+      console.error("Error logging in:", err);
+    } finally {
+      setLoading(false);
     }
   };
+
+  
+  
+  if (loading) return <Loader />; // <-- correct JSX
 
   return (
     <div className="bg-gray-100 flex items-center justify-center min-h-screen">
       <div className="bg-white shadow-md rounded-2xl p-8 w-full max-w-md">
-        <h2 className="text-2xl font-bold text-center text-blue-700 mb-6">Voter Login</h2>
+        <h2 className="text-2xl font-bold text-center text-blue-700 mb-6">
+          Voter Login
+        </h2>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -78,7 +96,9 @@ const VoterLogin = () => {
           </button>
 
           <div className="text-sm text-center mt-4">
-            <a href="#" className="text-blue-600 hover:underline">Forgot Password?</a>
+            <a href="#" className="text-blue-600 hover:underline">
+              Forgot Password?
+            </a>
           </div>
         </form>
       </div>

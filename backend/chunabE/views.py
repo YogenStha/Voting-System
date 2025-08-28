@@ -426,6 +426,37 @@ class UserVoteHistoryView(generics.RetrieveAPIView):
                 status=status.HTTP_200_OK  # Return 200 with error info instead of 500
             )
 
+class UserUploadImg(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+    
+    def post(self, request):
+        
+        print("upload data: ", request.data)
+        user_id = request.data.get("user_id")
+        profile_img = request.FILES.get("profile_image")
+        print("user id: ", user_id)
+        
+        user = User.objects.get(id=user_id)
+        user.image = profile_img
+        user.save()
+        
+        return Response({
+            "message": "received image",
+            "User_Img":user.image.url
+            })
+
+class UserDetailsView(APIView):
+    
+    def get(self, request):
+        user = request.user.username
+        print("user: ", user)
+        user = User.objects.get(username = user)
+        serializer = UserDetailSerializer(user)
+        
+        print("user details: ", serializer.data)
+        
+        return Response({"user": serializer.data})
+
 @api_view(['GET'])
 def csrf_token_view(request):
     """Get CSRF token if needed"""
@@ -465,6 +496,7 @@ def decrypt_votes_view(request, election_id):
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
 
+        
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def user_eligibility_view(request):

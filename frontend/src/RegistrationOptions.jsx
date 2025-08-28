@@ -6,7 +6,7 @@ function Option() {
         Select Your Role 
       </h1>
       <div className="flex flex-wrap gap-6">
-        <a href="/register">
+        <a href="/User_registration">
         <button className="px-8 py-4 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition duration-300 text-lg">
           Voter
         </button>

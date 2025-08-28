@@ -28,6 +28,7 @@ def generate_random_voter_id():
 
 class User(AbstractUser):
     username = models.CharField(max_length=100, unique=True)
+    image = models.ImageField(null=True, upload_to='users/')
     address = models.CharField(max_length=200)
     email = models.EmailField(max_length=100, unique=True)
     contact_number = models.CharField(max_length=15, unique=True)

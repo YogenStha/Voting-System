@@ -33,7 +33,7 @@ def send_otp_mail(receiver_mail, otp):
     sender_email = "testappdjango37@gmail.com"
     receiver_email = receiver_mail
     password = env('EMAIL_PASSWORD')
-    message = f"Your OTP is {otp}.\n\nPlease use this OTP to complete your registration.\n\OTP expires in 5 minutes.\n\n Please do not share this OTP with anyone."
+    message = f"Your OTP is {otp}.\n\nPlease use this OTP to complete your Login.\n\OTP expires in 5 minutes.\n\n Please do not share this OTP with anyone."
     create_context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL(smtp_server, port, context=create_context) as server:

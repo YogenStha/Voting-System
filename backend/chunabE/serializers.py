@@ -9,12 +9,12 @@ from django.contrib.auth import authenticate
 from django.core.validators import validate_email as django_validate_email
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from utils.send_mail import send_Voter_ID_mail
+from utils.send_mail import send_Voter_ID_mail, send_otp_mail
 from utils.RSA_key import rsa_keys
 import hashlib
 import base64
 from django.utils import timezone
-
+import secrets
 
 class RegisterSerializer(serializers.ModelSerializer):
     confirmPassword = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
@@ -112,11 +112,16 @@ class RegisterSerializer(serializers.ModelSerializer):
             traceback.print_exc()
             raise
 
-class UserTokenSerializer(TokenObtainPairSerializer):
+class UserTokenSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True)
     
-    def validate(self, attrs):
-        voter_id = attrs.get('username')
-        password = attrs.get('password')
+    
+    def validate(self, data):
+        request = self.context.get('request')  
+        print("data sent: ", data)
+        voter_id = data.get('username')
+        password = data.get('password')
         
         try:
             user = User.objects.only("username").get(voter_id=voter_id)  
@@ -126,25 +131,43 @@ class UserTokenSerializer(TokenObtainPairSerializer):
         user = authenticate(username=user.username, voter_id=voter_id, password=password)
         if user is None:
             raise serializers.ValidationError("Invalid credentials")
+        
+        otp = ''.join(str(secrets.randbelow(10)) for _ in range(6))
+        if request:
+            from django.core.cache import cache
+            cache.set(f"otp", otp, timeout=300)  # 5 minutes
             
-        attrs["username"] = user.username
+            try:
+                send_otp_mail(user.email, otp)
+            except Exception as e:
+                return serializers.ValidationError("OTP failed to send.")
+            
+        data["username"] = user.username
         self.user = user
-        user_details = {
-            'id': user.id,
-            "voter_id": user.voter_id,
-            "address": user.address,
-            "email": user.email,
-            "name": user.username,
-            
-        }
-        data = super().validate(attrs)
-        data.update({
-            "user": user_details,
-            
-        })
-        print("user data: ", data)
+        
+        
         return data
+
+class VerifyOTPSerializer(serializers.Serializer):
+    enteredOTP = serializers.CharField()
+    actualOTP = serializers.CharField()
+    voter_id = serializers.CharField()
     
+    def validate(self, attrs):
+        enteredOTP = attrs.get('enteredOTP')
+        actualOTP = attrs.get('actualOTP')
+        voter_id = attrs.get('voter_id')
+        
+        print(f'entered otp {enteredOTP} actual otp {actualOTP}')
+        
+        if enteredOTP != actualOTP:
+            return serializers.ValidationError("invalid OTP.")
+        
+        user = User.objects.get(voter_id=voter_id)
+        attrs['user'] = user
+        return attrs
+
+
 class CandidateRegisterSerializer(serializers.ModelSerializer):
     
     party = serializers.SlugRelatedField(

@@ -19,6 +19,7 @@ const VoterLogin = () => {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include", 
         body: JSON.stringify({
           username: voterId,
           password: password,
@@ -29,18 +30,17 @@ const VoterLogin = () => {
 
       if (response.ok) {
 
-        localStorage.setItem("access_token", data.access);
-        localStorage.setItem("refresh_token", data.refresh);
-        
-
+        // localStorage.setItem("access_token", data.access);
+        // localStorage.setItem("refresh_token", data.refresh);
+      
         const S = crypto.getRandomValues(new Uint8Array(32));
         localStorage.setItem("S", JSON.stringify(Array.from(S)));
         
-        let user = data.user;
         
-        sessionStorage.setItem("user", JSON.stringify(user));
-
-        navigate("/dashboard");
+        console.log("otp: ", data.otp);
+        sessionStorage.setItem("VoterId", voterId);
+      
+        navigate("/OTP");
       } else {
         console.error("Login failed:", data);
         alert("Invalid Voter ID or Password");

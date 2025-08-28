@@ -1,6 +1,7 @@
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
 from django.shortcuts import render
+from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils.decorators import method_decorator
 from rest_framework.decorators import api_view, permission_classes
@@ -16,11 +17,13 @@ from rest_framework import generics
 from django.contrib.auth import authenticate
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import UserTokenSerializer
 import logging
 import datetime
 import json
+
 from utils.block_logic import calculate_merkle_root, mine_block
 from utils.verification import verify_credential_signature_sigma, verify_vote_signature
 from utils.decrypt import decrypt_aes_key, decrypt_vote_data
@@ -68,9 +71,53 @@ class CandidateDetailsView(APIView):
         print("serializer data: ", serializer.data)
         return Response({"candidate_detail": serializer.data})
         
-class UserLoginJWTView(TokenObtainPairView):
+class UserLoginView(APIView):
     serializer_class = UserTokenSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data, context = {'request': request})
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.validated_data, status=status.HTTP_200_OK)
     
+
+class VerifyOTPView(APIView):
+    
+    def post(self, request, *args, **kwargs):
+        entered_otp = request.data.get("enteredOTP")
+        voter_id = request.data.get("voter_id")
+        actual_otp = cache.get("otp")
+        
+        if actual_otp is None:
+            return Response({"error": "OTP expired"}, status=400)
+
+        if entered_otp == actual_otp:
+            try:
+                # Make sure voter_id actually maps to a user
+                user = User.objects.get(voter_id=voter_id)
+            except User.DoesNotExist:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            tokens = get_tokens_for_user(user)
+            user_details = {
+                "id": user.id,
+                "voter_id": user.voter_id,
+            }
+            return Response({
+                "success": True,
+                "access": str(tokens["access"]),
+                "refresh": str(tokens["refresh"]),
+                'user': user_details
+            }, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
+    
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
 class VoterCredentialSendView(APIView):
     
     def get(self, request):

@@ -2,6 +2,7 @@ import React, { Suspense, lazy } from 'react';
 import Navbar from "./Navbar.jsx";
 import Home from "./Home.jsx";
 import Login from "./Login.jsx";
+import OTPPage from "./OTP.jsx";
 import { Routes, Route, useLocation, BrowserRouter } from 'react-router-dom';
 import Register from "./Register.jsx";
 import Option from "./RegistrationOptions.jsx";
@@ -11,8 +12,8 @@ import VotingPage from "./as.jsx";
 import ProtectedRoute from './ProtectedRoute.jsx';
 import UserCards from "./Candidates.jsx";
 import CandidateForm from "./CandidateForm.jsx"
-import ElectionResults from "./Result.jsx";
-// import ElectionResultsApp from "./result_as.jsx"
+// import ElectionResults from "./Result.jsx";
+
 
 const Result = lazy(() => import("./result_as.jsx"));
 
@@ -29,6 +30,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/OTP" element={<OTPPage/>} />
         <Route path="/Registration_Options" element={<Option />} />
         <Route path="/User_registration" element={<Register />} />
         <Route path="/Candidate_Registration" element={<CandidateForm/>}/>

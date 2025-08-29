@@ -60,12 +60,12 @@ class Candidate(models.Model):
     phone = models.CharField(max_length=10)
     manifesto = models.TextField()
     document = models.FileField(upload_to='candidates/')
-    candidate_id = models.CharField(max_length=10, unique=True)
     party = models.ForeignKey('Party', related_name='party', on_delete=models.CASCADE)
     position = models.ForeignKey('Position', related_name='position', on_delete=models.CASCADE)
     is_verified = models.BooleanField(default=False)
     election = models.ForeignKey('Election', related_name='candidates', on_delete=models.CASCADE)
     
+   
     def __str__(self):
         return f"{self.name} - ({self.party.party_name})"
 

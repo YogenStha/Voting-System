@@ -74,7 +74,7 @@ class CandidateAdmin(ModelAdmin):
     
     search_fields = (
         'name',
-        'candidate_id',
+        
         'party__name', 
         'position__name'
     )
@@ -86,7 +86,6 @@ class CandidateAdmin(ModelAdmin):
         ('Basic Information', {
             'fields': (
                 'name', 
-                'candidate_id',
                 'is_verified'
             ),
         }),

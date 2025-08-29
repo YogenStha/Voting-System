@@ -46,22 +46,22 @@ class RegisterSerializer(serializers.ModelSerializer):
          
         return value
     
-    # def validate_email(self, value):
-    #     if not value:
-    #         raise serializers.ValidationError("This field is required.")
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("This field is required.")
         
-    #     try:
-    #         django_validate_email(value)
-    #     except DjangoValidationError:
-    #         raise serializers.ValidationError("Invalid email format.")
+        try:
+            django_validate_email(value)
+        except DjangoValidationError:
+            raise serializers.ValidationError("Invalid email format.")
         
-    #     if User.objects.only("email").filter(email=value).exists():
-    #         raise serializers.ValidationError("This email is already taken.")
+        if User.objects.only("email").filter(email=value).exists():
+            raise serializers.ValidationError("This email is already taken.")
 
-    #     if not verify_mail(value):
-    #         raise serializers.ValidationError("Email is not valid.")
+        if not verify_mail(value):
+            raise serializers.ValidationError("Email is not valid.")
         
-    #     return value
+        return value
     
     def validate_student_id(self, value):
         if not value:
@@ -85,8 +85,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         try:
             validated_data.pop('confirmPassword') 
-            # user_data = validated_data.copy()
-            # temp_user = User(**user_data)
+            user_data = validated_data.copy()
+            temp_user = User(**user_data)
             
             print("hi")
             user = User.objects.create_user(**validated_data)
@@ -96,7 +96,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.fingerprint = fingerprint
             user.save()
             print("keys saved")
-            # threading.Thread(target=send_Voter_ID_mail, args=(user.email, user.username, user.voter_id))
+            threading.Thread(target=send_Voter_ID_mail, args=(user.email, user.username, user.voter_id))
             
             self.extra_data = {
                 "private_key": private_key_pem,
@@ -189,18 +189,34 @@ class CandidateRegisterSerializer(serializers.ModelSerializer):
         if not value.isdigit() or len(value) != 10:
             raise serializers.ValidationError("Phone number must be 10 digits")
         return value
+    
+    def validate_name(self, value):
+        if any(char.isdigit() for char in value):
+            raise serializers.ValidationError("Name cannot contain numbers.")
+        
         
 
 class PartySerializer(serializers.ModelSerializer):
     class Meta:
         model = Party
         fields = ['id', 'party_name', 'party_symbol']
+    
+    def validate_party_name(self, value):
+        if any(char.isdigit() for char in value):
+            raise serializers.ValidationError("Name cannot contain numbers.")
+        if Party.objects.get(party_name=value).exists():
+            raise serializers.ValidationError("Party already registered.")
 
 class PositionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Position
         fields = ['id', 'position_name']
-        
+    
+    def validate_position_name(self, value):
+        if any(char.isdigit() for char in value):
+            raise serializers.ValidationError("Name cannot contain numbers.")
+        if Position.objects.get(position_name=value).exists():
+            raise serializers.ValidationError("Position already registered.")
 
 class VoteSerializer(serializers.ModelSerializer):
     class Meta:
@@ -227,26 +243,12 @@ class CandidateSerializer(serializers.ModelSerializer):
     position = PositionSerializer()
     election = ElectionMiniSerializer()
     
-    # image = serializers.SerializerMethodField()
-    
-    # def get_image(self, obj):
-    #     if obj.image:
-            
-    #         request = self.context.get('request')
-    #         url = obj.image.url
-    #         print(f"Generated image URL: {url}")
-           
-    #         return url
-    #     else:
-    #         return None
-    
     class Meta:
         model = Candidate
         fields = ['id', 'name', 'image', 'manifesto', 'party', 'is_verified', 'election', 'position']
     
       
 class VoterCredendentialSerializer(serializers.ModelSerializer):
-    
     class Meta:
         model = VoterCredential
         fields = ['serial_number_b64']
@@ -283,7 +285,7 @@ class UserSerializer(serializers.ModelSerializer):
         return data
     
 class ElectionListSerializer(serializers.ModelSerializer):
-    """Simplified election serializer for list view"""
+  
     class Meta:
         model = Election
         fields = [
@@ -379,26 +381,7 @@ class AnonymousVoteSerializer(serializers.Serializer):
         credential_sig = base64.b64decode(validated_data['credential_sig'])
         serial_commitment = validated_data['serial_commitment']
         
-        # Handle revoting - mark previous votes as not latest (if you add is_latest field)
-        # Vote.objects.filter(
-        #     election=election,
-        #     serial_commitment=serial_commitment
-        # ).update(is_latest=False)
         
-        # Create new vote
-        # vote = Vote.objects.create(
-        #     election=election,
-        #     voter_credential = voter_credential,
-        #     candidate_ciphertext=candidate_ciphertext,
-        #     aes_key_wrapped=aes_key_wrapped,
-        #     credential_sig=credential_sig,
-        #     serial_commitment=serial_commitment,
-        #     timestamp=validated_data['timestamp']
-        #     # is_latest=True  # Add this if you add the field
-        # )
-        
-        # return vote
-
 class VoteHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = VoteHistory
@@ -409,8 +392,6 @@ class UserVoteHistorySerializer(serializers.Serializer):
         child=serializers.IntegerField(),
         read_only=True
     )
-    
-# serializers.py
 
 class CandidateVoteSerializer(serializers.ModelSerializer):
     candidate = CandidateSerializer()  # Nested candidate details

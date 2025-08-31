@@ -172,18 +172,18 @@ class ElectionAdmin(ModelAdmin):
         }),
     )
     
-@register(ElectionResult)
-class ElectionResultAdmin(ModelAdmin):
-    list_display = ('election', 'candidate', 'votes')
-    search_fields = ('election__name', 'candidate__name')
+# @register(ElectionResult)
+# class ElectionResultAdmin(ModelAdmin):
+#     list_display = ('election', 'candidate', 'votes')
+#     search_fields = ('election__name', 'candidate__name')
     
-    fieldsets = (
-        (None, {
-            "fields": (
-                'election', 'candidate', 'votes'
-            ),
-        }),
-    )
+#     fieldsets = (
+#         (None, {
+#             "fields": (
+#                 'election', 'candidate', 'votes'
+#             ),
+#         }),
+#     )
     
 # admin.site.register(User) 
 # admin.site.register(Candidate)

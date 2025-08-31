@@ -177,14 +177,6 @@ class Election(models.Model):
                             hashes.SHA256())
         return signature
 
-class ElectionResult(models.Model):
-    election = models.ForeignKey(Election, on_delete=models.CASCADE)
-    candidate = models.ForeignKey(Candidate, on_delete=models.CASCADE)
-    votes = models.IntegerField(default=0)
-    
-    def __str__(self):
-        return f"{self.election.name} - {self.candidate.name} - {self.votes} votes"
-    
 class Eligibility(models.Model):
     election = models.ForeignKey('Election', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE, unique=True)

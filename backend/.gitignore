@@ -1,2 +1,6 @@
 .env
 chunabE/migrations
+media
+tests
+pytest.ini
+requirements-dev.txt

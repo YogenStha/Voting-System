@@ -8,7 +8,6 @@ const UserProfileModal = ({ user, onClose }) => {
   const [voter, setVoter] = useState('');
   const navigate = useNavigate();
   
-
    useEffect(() => {
     
     loadUserDetails();
@@ -71,7 +70,6 @@ const UserProfileModal = ({ user, onClose }) => {
       });
 
       const data = await response.json();
-      console.log("user details: ", data);
       setVoter(data.user);
     } catch (err){
       console.log("error occured: ", err);

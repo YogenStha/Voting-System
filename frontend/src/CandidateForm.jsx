@@ -29,9 +29,9 @@ export default function CandidateForm() {
   formDataToSend.append("position", formData.position); // ID of position
   formDataToSend.append("party", formData.party);       // ID of party
   formDataToSend.append("document", formData.document); // file
-  // formDataToSend.append("image", formData.image); 
+  
   formDataToSend.append("election", formData.election);       
-console.log("data to send: ", formDataToSend);
+// console.log("data to send: ", formDataToSend);
 for (let [key, value] of formDataToSend.entries()) {
   console.log(key, value);
 }
@@ -42,8 +42,7 @@ for (let [key, value] of formDataToSend.entries()) {
       body: formDataToSend,
     })
     const data = await response.json();
-    console.log('message: ', data.message);
-
+    
     }catch(error){
       console.log("error: ", error);
     }

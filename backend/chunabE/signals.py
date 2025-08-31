@@ -18,7 +18,7 @@ def assign_election_based_on_college(sender, instance, created, **kwargs):
     if created:
         print("Signal fired for user:", instance.username)
         try:
-            print("Looking for election with name:", instance.college)
+            
             election = Election.objects.get(name=instance.college)
         except Election.DoesNotExist:
             print("No matching election for college:", instance.college)

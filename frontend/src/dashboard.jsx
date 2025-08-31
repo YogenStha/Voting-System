@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Vote, Calendar, Users, CheckCircle, AlertCircle, User, FileText, XCircle } from 'lucide-react';
-import Cookies from 'js-cookie';
-import { loadPrivateKey, hasPrivateKey, getAllUserIds } from './hooks/secureDB';
+import { hasPrivateKey } from './hooks/secureDB';
 import UserProfileModal from "./UserProfileModal";
-import {
-  signMessage, verifySignature, encryptWithAES, encryptWithRSA, sha256,
-  encryptVoteHybrid, signVotePayload, processVoteForSubmission
-} from './hooks/encryption';
+import { verifySignature, sha256, encryptVoteHybrid, signVotePayload, } from './hooks/encryption';
 
 const base64Encode = (uint8Array) => {
   return btoa(String.fromCharCode(...uint8Array));
@@ -37,15 +33,11 @@ const ElectionVotingApp = () => {
   const [isLoadingCredentials, setIsLoadingCredentials] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   
-
   let userStr = sessionStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
 
   const voterId = user.id;
-  console.log('type of Voter ID from session:', typeof voterId);
-  console.log("voter_id: ", voterId);
   
-
   useEffect(() => {
     fetchElectionData();
     fetchUserVoteHistory();
@@ -53,7 +45,6 @@ const ElectionVotingApp = () => {
 
   }, []);
 
-  console.log("candidate details: ", candidates);
   // Load credentials from localStorage
   const loadCredentials = async () => {
     if (!voterId) {
@@ -72,16 +63,14 @@ const ElectionVotingApp = () => {
       });
 
       let credential = await response.json();
-      console.log("voter credential sent (backend): ", credential.voter_credential.serial_number_b64);
       let S_b64 = credential.voter_credential.serial_number_b64
       let S = base64Decode(S_b64);
-      console.log("decoded S: ", S);
       localStorage.setItem('S', JSON.stringify(Array.from(S)));
 
       const savedCredentials = localStorage.getItem(`credentials_${voterId}`);
       if (savedCredentials) {
         const parsedCredentials = JSON.parse(savedCredentials);
-        console.log('Successfully loaded credentials:', parsedCredentials);
+        
         setCredentials(parsedCredentials);
       }
     } catch (error) {
@@ -104,7 +93,7 @@ const ElectionVotingApp = () => {
       const credentialsString = JSON.stringify(newCredentials);
       localStorage.setItem(`credentials_${voterId}`, JSON.stringify(credentialsString));
       setCredentials(newCredentials);
-      console.log('Successfully saved credentials for elections:', Object.keys(newCredentials));
+      console.log('Successfully saved credentials for elections:');
       return true;
     } catch (error) {
       console.error('Error saving credentials:', error);
@@ -123,9 +112,8 @@ const ElectionVotingApp = () => {
     try {
       loadCredentials();
       if (credentials[electionId]) {
-        console.log('Using existing credential for election:', electionId);
-        console.log('Existing credential:', credentials[electionId]);
-
+        console.log('Using existing credential for election:');
+      
         const existingCredential = credentials[electionId];
         if (existingCredential.S_b64 && existingCredential.sigma_b64 && existingCredential.voter_credential_id) {
           console.log('Existing credential is valid');
@@ -136,16 +124,13 @@ const ElectionVotingApp = () => {
 
       }
 
-      console.log('Generating new credential for election:', electionId);
+      console.log('Generating new credential for election:');
       const S_array = JSON.parse(localStorage.getItem('S'));
       if (!S_array) {
         throw new Error('Serial number S not found in localStorage');
       }
 
       const S = new Uint8Array(S_array);
-      console.log("S value in dashboard:", S_array);
-      console.log("Submitting S: ", S);
-      console.log("encoded S: ", base64Encode(S));
 
       let S_b64;
       let sigma_b64;
@@ -170,17 +155,15 @@ const ElectionVotingApp = () => {
 
         if (response.ok) {
           const data = JSON.parse(responseText);
-          console.log("Received credential data from EA:", data);
 
           // Handle both new credential creation (201) and existing credential (200)
           if (data.signature && data.voter_credential_id && data.serial_number_b64) {
             S_b64 = data.serial_number_b64;
             sigma_b64 = data.signature;
             voter_credential = data.voter_credential_id;
-            console.log("Received voter credential id:", voter_credential);
-            console.log("received sigma from backend:", sigma_b64);
+            
             let S = base64Decode(S_b64);
-            console.log('S decoded sent fron backend: ', S);
+            
           } else {
             throw new Error('Invalid response format from EA');
           }
@@ -231,14 +214,6 @@ const ElectionVotingApp = () => {
       setIsLoadingCredentials(false);
     }
   };
-  // Check if we already have a credential for this election
-
-
-  // Generate new credential
-
-  // TODO: In a real implementation, you would get σ (sigma) from the Election Authority
-  // For now, we'll simulate it or get it from your backend
-
 
   // Load voted elections from localStorage on component mount
   const loadVotedElections = () => {
@@ -304,8 +279,7 @@ const ElectionVotingApp = () => {
       const data = await response.json();
       setElections(data.elections);
       setCandidates(data.candidates);
-      console.log("fetch candidate data: ", data);
-
+      
     } catch (err) {
       setError(err.message);
     } finally {
@@ -314,9 +288,8 @@ const ElectionVotingApp = () => {
   };
 
   const getElectionCandidates = (electionId) => {
-    console.log("Filtering candidates for election: ", electionId)
-    console.log("Available candidates: ", candidates)
-
+    console.log("Filtering candidates for election: ")
+  
     return candidates.filter(candidate => {
       // Check different possible structures for election ID
       const candidateElectionId = candidate.election?.id ||
@@ -324,15 +297,12 @@ const ElectionVotingApp = () => {
         candidate.electionId ||
         candidate.election;
 
-      console.log("Candidate election Id: ", candidateElectionId);
-      console.log("Target election Id: ", electionId);
-
       return candidateElectionId == electionId;
     });
   };
 
   const handleVote = (electionId, positionId, candidateId) => {
-    console.log('handleVote called:', { electionId, positionId, candidateId });
+    
     setVotes(prev => {
       const newVotes = {
         ...prev,
@@ -341,7 +311,7 @@ const ElectionVotingApp = () => {
           [positionId]: candidateId
         }
       };
-      console.log('New votes state:', newVotes);
+      
       return newVotes;
     });
   };
@@ -371,13 +341,12 @@ const ElectionVotingApp = () => {
 
     try {
       const keyExists = await hasPrivateKey(voterId);
-      console.log(`Private key exists for ${voterId}: ${keyExists}`);
+      console.log(`Private key exists for ${voterId}`);
       setHasUserKey(keyExists);
 
       if (!keyExists) {
         console.warn('No private key found - user should generate one');
-        // Optionally show key management automatically
-        // setShowKeyManagement(true);
+       
       }
     } catch (error) {
       console.error('Error checking private key:', error);
@@ -417,16 +386,13 @@ const ElectionVotingApp = () => {
       if (!voter_credential) {
         throw new Error("Voter credential ID not valid.  you are not eligible in this election.");
       }
-      console.log('Using credential S:', S_b64);
-      console.log("voter credential id: ", voter_credential);
-      console.log('Using credential sigma:', sigma_b64);
 
       // Find the election to get its public key
       const election = elections.find(e => e.id === electionId);
       if (!election || !election.public_key) {
         throw new Error('Election public key not found');
       }
-      console.log("election public key: ", election.public_key);
+      
       const sigmaValid = await verifySignature(S_b64, sigma_b64, election.public_key);
       if (!sigmaValid) throw new Error("Credential signature verification failed(Sigma). Cannot proceed with voting.");
       console.log("✓ Credential signature verified successfully (Sigma)");
@@ -434,8 +400,7 @@ const ElectionVotingApp = () => {
 
       // Prepare candidate selections
       const candidateIds = positions.map(positionId => electionVotes[positionId]);
-      console.log('Selected candidate IDs:', candidateIds);
-
+      
       const voteData = {
         candidate_ids: candidateIds,
         election_id: electionId,
@@ -448,14 +413,11 @@ const ElectionVotingApp = () => {
       const encryptionResult = await encryptVoteHybrid(voteData, election.public_key);
       console.log('✓ Vote encrypted with AES-GCM');
       console.log('✓ AES key encrypted with RSA-OAEP');
-      console.log("AES key: ", encryptionResult.aes_key_wrapped);
-      console.log('✓ Encryption result keys:', Object.keys(encryptionResult));
-
+    
       console.log('=== STEP 6: CREATING SERIAL COMMITMENT ===');
 
       const serialCommitment = await sha256(S_b64 ? base64Decode(S_b64) : new Uint8Array());
       console.log('✓ Serial commitment created (SHA-256 of S)');
-      console.log('serial commitment: ', serialCommitment);
       console.log('✓ Commitment length:', serialCommitment.length);
 
       console.log('=== STEP 7: CONSTRUCTING SECURE PAYLOAD ===');
@@ -471,16 +433,13 @@ const ElectionVotingApp = () => {
       };
 
       console.log('✓ Base payload constructed');
-      console.log("payload before signing: ", payload);
-      console.log('✓ Payload fields:', Object.keys(payload));
-
       // STEP 2I: DIGITAL SIGNATURE
       console.log('=== STEP 8: SIGNING PAYLOAD WITH VOTER KEY ===');
 
       const signedPayload = await signVotePayload(payload, voterId);
       console.log('✓ Payload signed with voter private key (PKCS#1 v1.5.)');
       console.log('✓ Signature added to payload');
-      console.log("signature: ", signedPayload.signature);
+      
       // STEP 2J: FINAL VALIDATION
       console.log('=== STEP 9: FINAL PAYLOAD VALIDATION ===');
 
@@ -505,13 +464,13 @@ const ElectionVotingApp = () => {
 
       // STEP 2K: SECURE SUBMISSION
       console.log('=== STEP 10: SUBMITTING SECURE VOTE ===');
-      console.log("final signed payload: ", signedPayload);
-      console.log("Final payload structure:", {
-        ...signedPayload,
-        signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging
-        candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
-        aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
-      });
+
+      // console.log("Final payload structure:", {
+      //   ...signedPayload,
+      //   signature: `${signedPayload.signature.substring(0, 20)}...`, // Truncate for logging
+      //   candidate_ciphertext: `${signedPayload.candidate_ciphertext.substring(0, 20)}...`,
+      //   aes_key_wrapped: `${signedPayload.aes_key_wrapped.substring(0, 20)}...`
+      // });
 
       const response = await fetch("http://localhost:8000/api/vote/", {
         method: "POST",
@@ -525,8 +484,7 @@ const ElectionVotingApp = () => {
 
       // Parse the response
       const responseData = await response.json();
-      console.log("Vote submission response:", responseData);
-
+      
       if (response.ok) {
         // Success case
         console.log(`Vote submitted successfully for election ${electionId}`);

@@ -88,7 +88,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             user_data = validated_data.copy()
             temp_user = User(**user_data)
             
-            print("hi")
             user = User.objects.create_user(**validated_data)
             print("user created")
             private_key_pem, public_key_pem, fingerprint = rsa_keys()
@@ -119,7 +118,6 @@ class UserTokenSerializer(serializers.Serializer):
     
     def validate(self, data):
         request = self.context.get('request')  
-        print("data sent: ", data)
         voter_id = data.get('username')
         password = data.get('password')
         
@@ -156,8 +154,6 @@ class VerifyOTPSerializer(serializers.Serializer):
         enteredOTP = attrs.get('enteredOTP')
         actualOTP = attrs.get('actualOTP')
         voter_id = attrs.get('voter_id')
-        
-        print(f'entered otp {enteredOTP} actual otp {actualOTP}')
         
         if enteredOTP != actualOTP:
             return serializers.ValidationError("invalid OTP.")
@@ -340,15 +336,6 @@ class AnonymousVoteSerializer(serializers.Serializer):
     def validate(self, data):
         # Validate election exists and is active
         try:
-            print("before validation: \n" )
-            print(f"election_id: {data['election_id']}\n")
-            print(f"voter_credential_id: {data['voter_credential_id']}\n")
-            print(f"signature: {data['signature']}\n")
-            print(f"candidate_ciphertext: {data['candidate_ciphertext']}\n")
-            print(f"aes_key_wrapped: {data['aes_key_wrapped']}\n")
-            print(f"credential_sig: {data['credential_sig']}\n")
-            print(f"serial_commitment: {data['serial_commitment']}\n")
-            print(f"timestamp: {data['timestamp']}\n")
             
             election = Election.objects.get(id=data['election_id'], is_active=True)
             current_time = timezone.now()
@@ -371,7 +358,7 @@ class AnonymousVoteSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        print("Submited vote data:", validated_data)  # Debugging line
+        
         election_id = validated_data['election_id']
         election = Election.objects.get(id=election_id)
         voter_credential = VoterCredential.objects.get(id=validated_data['voter_credential_id'])

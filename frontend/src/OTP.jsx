@@ -47,9 +47,6 @@ export default function OTPPage() {
 
     if(response.ok){
 
-      console.log("data sent: ", data);
-      console.log("access: ", data.access);
-      console.log("access: ", data.refresh);
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("refresh_token", data.refresh);
 
@@ -60,8 +57,6 @@ export default function OTPPage() {
    } catch (err){
     console.error("error occured: ", err);
    }
-    
-
     
   };
 

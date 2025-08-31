@@ -15,10 +15,10 @@ function UserCards() {
       });
       const data = await response.json();
       if (response.ok) {
-        console.log("candidate details: ", data.candidate_detail);
+        
         setCandidates(data.candidate_detail);
         setLoading(false);
-        console.log("candidate image: ", candidates.image);
+        
       } else {
         console.log("error");
       }

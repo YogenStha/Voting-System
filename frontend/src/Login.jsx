@@ -46,8 +46,6 @@ const VoterLogin = () => {
       setLoading(false);
     }
   };
-
-  
   
   if (loading) return <Loader />; // <-- correct JSX
 

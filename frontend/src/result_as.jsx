@@ -8,8 +8,6 @@ const ElectionResultsApp = () => {
   const [selectedElection, setSelectedElection] = useState(null);
   const [loading, setLoading] = useState(true);
 
-
-
   useEffect(() => {
     const fetchElectionResults = async () => {
       setLoading(true);

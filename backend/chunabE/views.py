@@ -39,7 +39,7 @@ class UserRegisterView(APIView):
     
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
-        print("request data: ", request.data)
+        
         if serializer.is_valid():
             user = serializer.save()
             
@@ -54,7 +54,7 @@ class CandidateRegisterView(APIView):
     parser_classes = (MultiPartParser, FormParser)
     def post(self, request):
         serializer = CandidateRegisterSerializer(data = request.data)
-        print("post")
+        
         if serializer.is_valid():
             candidate = serializer.save()
             
@@ -68,7 +68,7 @@ class CandidateDetailsView(APIView):
     def get(self, request):
         candidate = Candidate.objects.all()
         serializer = CandidateSerializer(candidate, many=True  )
-        print("serializer data: ", serializer.data)
+        
         return Response({"candidate_detail": serializer.data})
         
 class UserLoginView(APIView):
@@ -122,7 +122,6 @@ class VoterCredentialSendView(APIView):
     
     def get(self, request):
         if request.user.is_authenticated:
-            print("get credential S")
             
             credential = VoterCredential.objects.get(user = request.user.id)
             credential_data = VoterCredendentialSerializer(credential).data
@@ -145,7 +144,6 @@ class ElectionView(APIView):
             candidates = Candidate.objects.filter(is_verified=True)
             candidate_data = CandidateSerializer(candidates, many=True).data
             
-            print("candidate detail: ", candidate_data)
             return Response({
                 "elections": election_data,
                 "candidates": candidate_data,
@@ -162,16 +160,11 @@ class CredentialIssueView(generics.CreateAPIView):
     serializer_class = CredentialRequestSerializer
     
     def post(self, request, *args, **kwargs):
-        print("User:", request.user)
-        print("Is authenticated:", request.user.is_authenticated)
-        print("Auth header:", request.META.get("HTTP_AUTHORIZATION"))
-        print("Request data:", request.data)
         
         S_base64 = request.data.get('serial_number')
         S = base64.b64decode(S_base64)
-        print("Decoded S:", S)
+        
         S_numbers = list(S)
-        print("S as numbers:", S_numbers)
         user = request.user
         election_id = request.data.get('election_id')
         
@@ -192,7 +185,7 @@ class CredentialIssueView(generics.CreateAPIView):
             
             if existing_credential:
                 voter_credential_id = existing_credential.id
-                print("singma (signature) : ", existing_credential.signature)
+                
                 return Response({
                     'message': 'Credential already issued',
                     'serial_number_b64': S_base64,
@@ -216,8 +209,7 @@ class CredentialIssueView(generics.CreateAPIView):
         
         eligibility.issued = True
         eligibility.save()
-        print("voter credential id: ", credential.id)
-        print("voter credential created successfully")
+        
         return Response({
             'signature': credential.signature,
             'serial_number_b64': S_base64,
@@ -280,29 +272,25 @@ class AnonymousVoteView(generics.CreateAPIView):
                         iso_string = iso_parts[0] + '.' + iso_parts[1][:3]
                     vote_payload_copy["timestamp"] = iso_string + 'Z'
                 
-                print("timestamp (isoformat): ", vote_payload_copy['timestamp'])
-                print("vote_playload:(after verifying credential signature) ", vote_payload)
+                
                 signature_b64 = vote_payload['signature']  # signature sent by voter
-                print("signature: ", signature_b64)
+                
                 
                 user_credential_id = voter_credential.user_id
                 user = User.objects.get(id = user_credential_id)
-                print("user_id: ", user_credential_id)
+                
                 
                 if not verify_vote_signature(vote_payload_copy, signature_b64, user.public_key):
                     return Response({"error": "invalid user signature"}, status=400)
                 
-                # here decrypt vote contents and verify if they are valid
+ 
                 
                 # decrypt aes key using election's private key
-                print("aes key wrapped: ", aes_key_wrapped_b64)
+                
                 aes_key = decrypt_aes_key(election, aes_key_wrapped_b64)
-                print("\n\n aes key decrypted: ", aes_key)
                 
                 # decrypt vote using above aes key
-                print("candidate cipher text (vote data): ", candidate_ciphertext_b64)
                 decrypted_vote_data = decrypt_vote_data(candidate_ciphertext_b64, aes_key)
-                print("\n\ndecrypted vote data: ", decrypted_vote_data)
                 
                 #validate the vote data
                 for cid in decrypted_vote_data.get("candidate_ids", []):
@@ -312,18 +300,12 @@ class AnonymousVoteView(generics.CreateAPIView):
                     except Candidate.DoesNotExist:
                         return Response({"error": "Not valid candidate or election"}, status=400)
                     
-                print(f"valid candidate id: {decrypted_vote_data['candidate_ids'][0]} and election id: {decrypted_vote_data['election_id']}")
-                # Create the vote
-                
-                
                 previous_votes = Vote.objects.filter(
                                 election=election,
                                 serial_commitment=serial_commitment,
                                 is_latest=True  # add this field to mark the latest vote
                             )
-               
-                
-                
+            
                 if previous_votes.exists():
                     for prev_vote in previous_votes:
                         try:
@@ -331,14 +313,14 @@ class AnonymousVoteView(generics.CreateAPIView):
                                 base64.b64encode(prev_vote.candidate_ciphertext).decode('utf-8'),
                                 decrypt_aes_key(election, base64.b64encode(prev_vote.aes_key_wrapped).decode('utf-8'))
                             )
-                            print("previous vote decrypted: ", prev_vote_data)
+                            
                             for prev_cid in prev_vote_data.get("candidate_ids", []):
                                 try:
                                     prev_tally = Tally.objects.get(election=election, candidate_id=prev_cid)
                                     if prev_tally.vote_count > 0:
                                         prev_tally.vote_count -= 1
                                         prev_tally.save()
-                                        print(f"Subtracted 1 vote from candidate {prev_cid}, new count: {prev_tally_obj.vote_count}")
+                                        
                                     else:
                                         print(f"Warning: Tally for candidate {prev_cid} already at 0, cannot subtract")
                                 except Tally.DoesNotExist:
@@ -373,7 +355,6 @@ class AnonymousVoteView(generics.CreateAPIView):
                     )
                     tally.vote_count += 1
                     tally.save()
-                    print(f"Added 1 vote to candidate {cid}, new count: {tally.vote_count}")
 
                 # Update vote history for the authenticated user
                 # This is for UI purposes and doesn't compromise anonymity
@@ -477,11 +458,8 @@ class UserUploadImg(APIView):
     parser_classes = [MultiPartParser, FormParser]
     
     def post(self, request):
-        
-        print("upload data: ", request.data)
         user_id = request.data.get("user_id")
         profile_img = request.FILES.get("profile_image")
-        print("user id: ", user_id)
         
         user = User.objects.get(id=user_id)
         user.image = profile_img
@@ -503,11 +481,8 @@ class UserDetailsView(APIView):
     
     def get(self, request):
         user = request.user.username
-        print("user: ", user)
         user = User.objects.get(username = user)
         serializer = UserDetailSerializer(user)
-        
-        print("user details: ", serializer.data)
         
         return Response({"user": serializer.data})
 

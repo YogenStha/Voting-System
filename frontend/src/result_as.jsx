@@ -109,7 +109,7 @@ const ElectionResultsApp = () => {
               transition={{ duration: 0.6 }}
             >
               <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
-                🗳️ Election Results
+                 Election Results
               </h1>
               <p className="text-xl text-gray-600">Click on an election to view detailed results</p>
             </motion.div>
@@ -245,7 +245,7 @@ const ElectionResultsApp = () => {
                         whileHover={{ scale: 1.02 }}
                       >
                         <Trophy className="w-8 h-8 text-yellow-600 mx-auto mb-3" />
-                        <p className="text-sm text-yellow-800 mb-2">🏆 Winner</p>
+                        <p className="text-sm text-yellow-800 mb-2"> Winner</p>
                         <p className="font-bold text-xl text-gray-800">{winner.name}</p>
                         <p className="text-sm text-gray-600 mb-2">{winner.party.party_name}</p>
                         <p className="text-lg font-semibold text-blue-600">

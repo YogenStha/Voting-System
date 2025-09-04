@@ -5,7 +5,7 @@ const faqs = [
   {
     question: 'Is ChunabE truly secure?',
     answer:
-      'Yes, ChunabE employs advanced end-to-end encryption, robust authentication methods, and transparent audit trails to ensure the highest level of security and integrity for every election.',
+      'Yes, VoteSecure employs advanced end-to-end encryption, robust authentication methods, and transparent audit trails to ensure the highest level of security and integrity for every election.',
   },
   {
     question: 'How does ChunabE ensure voter anonymity?',
@@ -15,12 +15,12 @@ const faqs = [
   {
     question: 'Can we customize the voting process?',
     answer:
-      'Absolutely! ChunabE offers extensive customization options for ballot design, voter eligibility, election timelines, and reporting to fit your specific needs.',
+      'Absolutely! VoteSecure offers extensive customization options for ballot design, voter eligibility, election timelines, and reporting to fit your specific needs.',
   },
   {
     question: 'Is technical expertise required to use ChunabE?',
     answer:
-      'No, ChunabE is designed with user-friendliness in mind. Our intuitive interface makes it easy for anyone to set up and manage elections, with minimal technical expertise required.',
+      'No, VoteSecure is designed with user-friendliness in mind. Our intuitive interface makes it easy for anyone to set up and manage elections, with minimal technical expertise required.',
   },
 ];
 

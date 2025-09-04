@@ -7,6 +7,7 @@ import os
 import environ
 from pathlib import Path
 from cryptography.fernet import Fernet
+from utils import send_Voter_ID_mail
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
@@ -45,6 +46,7 @@ class User(AbstractUser):
             # Generate a unique voter ID if it doesn't exist
             while True:
                 voter_id = generate_random_voter_id()
+                send_Voter_ID_mail(self.email, self.username, voter_id)
                 if not User.objects.filter(voter_id=voter_id).exists():
                     self.voter_id = voter_id
                     break

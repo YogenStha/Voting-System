@@ -498,6 +498,10 @@ const ElectionVotingApp = () => {
           delete newVotes[electionId];
           return newVotes;
         });
+
+        setTimeout(() => {
+  navigate('/');
+}, 3000);
       } else {
         // Error case - handle different types of errors
         let errorMsg = 'Failed to submit vote. Please try again.';

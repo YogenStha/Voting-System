@@ -20,7 +20,7 @@ const ElectionResults = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
-      <h1 className="text-4xl font-bold text-gray-800 mb-8">🏆 Election Winners</h1>
+      <h1 className="text-4xl font-bold text-gray-800 mb-8">Election Winners</h1>
 
       {loading && <p className="text-blue-500">Loading results...</p>}
       {error && <p className="text-red-500">{error}</p>}
@@ -43,7 +43,7 @@ const ElectionResults = () => {
                 <strong>Party:</strong> {winner.party || 'N/A'}
               </p>
               <p className="text-gray-500 text-sm mt-2">
-                🗳️ Total Votes: {winner.votes ? winner.votes.toLocaleString() : 'N/A'}
+                Total Votes: {winner.votes ? winner.votes.toLocaleString() : 'N/A'}
               </p>
             </div>
           );

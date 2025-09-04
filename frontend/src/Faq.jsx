@@ -3,12 +3,12 @@ import { HelpCircle } from "lucide-react";
 
 const faqs = [
   {
-    question: 'Is VoteSecure truly secure?',
+    question: 'Is ChunabE truly secure?',
     answer:
       'Yes, VoteSecure employs advanced end-to-end encryption, robust authentication methods, and transparent audit trails to ensure the highest level of security and integrity for every election.',
   },
   {
-    question: 'How does VoteSecure ensure voter anonymity?',
+    question: 'How does ChunabE ensure voter anonymity?',
     answer:
       'Our system is designed to separate voter identity from their ballot, ensuring complete anonymity while maintaining the ability to verify that only eligible voters participate.',
   },
@@ -18,7 +18,7 @@ const faqs = [
       'Absolutely! VoteSecure offers extensive customization options for ballot design, voter eligibility, election timelines, and reporting to fit your specific needs.',
   },
   {
-    question: 'Is technical expertise required to use VoteSecure?',
+    question: 'Is technical expertise required to use ChunabE?',
     answer:
       'No, VoteSecure is designed with user-friendliness in mind. Our intuitive interface makes it easy for anyone to set up and manage elections, with minimal technical expertise required.',
   },

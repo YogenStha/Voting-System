@@ -4,6 +4,7 @@ from django.shortcuts import render
 from django.core.cache import cache
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.utils.decorators import method_decorator
+from django.utils.timezone import now
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -85,9 +86,11 @@ class VerifyOTPView(APIView):
     def post(self, request, *args, **kwargs):
         entered_otp = request.data.get("enteredOTP")
         voter_id = request.data.get("voter_id")
-        actual_otp = cache.get("otp")
         
+        actual_otp = cache.get("otp")
+        print(actual_otp)
         if actual_otp is None:
+            print("OTP expired")
             return Response({"error": "OTP expired"}, status=400)
 
         if entered_otp == actual_otp:
@@ -95,6 +98,7 @@ class VerifyOTPView(APIView):
                 # Make sure voter_id actually maps to a user
                 user = User.objects.get(voter_id=voter_id)
             except User.DoesNotExist:
+                print("User not found for given voter ID.")
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
             tokens = get_tokens_for_user(user)
@@ -139,11 +143,16 @@ class ElectionView(APIView):
     
     def get(self, request):
         try:
+            expired_elections = Election.objects.filter(is_active = True, end_date__lt = now())
+            for election in expired_elections:
+                election.is_active = False
+                election.save(update_fields=['is_active'])
+                
             elections = Election.objects.filter(is_active=True)
             election_data = ElectionSerializer(elections, many=True).data
             candidates = Candidate.objects.filter(is_verified=True)
             candidate_data = CandidateSerializer(candidates, many=True).data
-            
+            print(election_data)
             return Response({
                 "elections": election_data,
                 "candidates": candidate_data,
@@ -282,8 +291,6 @@ class AnonymousVoteView(generics.CreateAPIView):
                 
                 if not verify_vote_signature(vote_payload_copy, signature_b64, user.public_key):
                     return Response({"error": "invalid user signature"}, status=400)
-                
- 
                 
                 # decrypt aes key using election's private key
                 

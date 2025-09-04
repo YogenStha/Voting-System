@@ -13,7 +13,6 @@ def decrypt_aes_key(election, aes_key_wrapped_b64):
         # Get election's private key
         private_key_pem = election.get_private_key()  # You need this method
         
-        print("\n\nelection private key: ", private_key_pem)
         # Decode wrapped AES key
         wrapped_key = base64.b64decode(aes_key_wrapped_b64)
         
@@ -43,7 +42,7 @@ def decrypt_vote_data(candidate_ciphertext_b64, aes_key):
     try:
         # Decode ciphertext
         ciphertext = base64.b64decode(candidate_ciphertext_b64)
-        print("decoded cipher text: ", ciphertext)
+        
         # Extract components (IV + encrypted_data + auth_tag)
         iv = ciphertext[:12]           # First 12 bytes
         auth_tag = ciphertext[-16:]    # Last 16 bytes  

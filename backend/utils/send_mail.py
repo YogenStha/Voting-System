@@ -2,6 +2,7 @@ import smtplib, ssl
 import os
 import environ
 from pathlib import Path
+from celery import shared_task
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env(
@@ -9,7 +10,7 @@ env = environ.Env(
 )
 environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
-
+@shared_task
 def send_Voter_ID_mail(receiver_mail, username, voter_id):
     
     port = 465  # For SSL
@@ -26,7 +27,7 @@ def send_Voter_ID_mail(receiver_mail, username, voter_id):
         server.sendmail(sender_email, receiver_email, message)
     
         
-
+@shared_task
 def send_otp_mail(receiver_mail, otp):
     port = 465  # For SSL
     smtp_server = "smtp.gmail.com"

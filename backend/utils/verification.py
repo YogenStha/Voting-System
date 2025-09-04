@@ -10,12 +10,9 @@ import json
 def verify_credential_signature_sigma(election, voter_credential, credential_sig_b64):
     """Verify the voter credential signature"""
     
-    
-    print("inside verify_credential_signature_sigma function.")
     # Get the original S value used to create this credential
     original_s_b64 = voter_credential.serial_number_b64  # This should be stored
-    print(f"original S b64: {original_s_b64}")
-    print(f"original sigms b64: {credential_sig_b64}")
+    
     try:
         # Load election's public key
         public_key_pem = election.public_key
@@ -27,9 +24,7 @@ def verify_credential_signature_sigma(election, voter_credential, credential_sig
         # Decode the signature and message
         signature = base64.b64decode(credential_sig_b64)
         message = base64.b64decode(original_s_b64)
-        
-        print("\nsignature: ", signature)
-        print("\nS after decode: ", message)
+    
         # Verify signature
         public_key.verify(
             signature,
@@ -56,10 +51,6 @@ def verify_vote_signature(vote_payload, signature_b64, voter_public_key):
         # Create canonical message
         message = json.dumps(payload_copy, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
         
-        # Get voter's public key (you need to store this during credential creation)
-        print("user public key(removing pemHeader): ", public_key)
-        
-        print("\n\nmessage (after json dump): ", message)
         # Verify signature
         signature = base64.b64decode(signature_b64)
         public_key.verify(

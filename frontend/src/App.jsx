@@ -8,7 +8,6 @@ import Register from "./Register.jsx";
 import Option from "./RegistrationOptions.jsx";
 import useAuthTokenRefresh from './hooks/useAuthTokenRefresh';
 import ElectionDetails from "./dashboard.jsx";
-import VotingPage from "./as.jsx";
 import ProtectedRoute from './ProtectedRoute.jsx';
 import UserCards from "./Candidates.jsx";
 import CandidateForm from "./CandidateForm.jsx"
@@ -21,7 +20,7 @@ function App() {
   useAuthTokenRefresh(1); // Refresh token every 4 minutes by default
   const location = useLocation();
   // List of paths where Navbar should be hidden
-  const hideNavbarPaths = ["/voting"];
+  const hideNavbarPaths = ["/login", "OTP", "/dashboard"];
   return (
     <>
       {!hideNavbarPaths.includes(location.pathname) && <Navbar />}
@@ -39,7 +38,6 @@ function App() {
           <ProtectedRoute>
             <ElectionDetails />
           </ProtectedRoute>} />
-        <Route path="/voting" element={<VotingPage />} />
         <Route path="/Candidates" element={<UserCards/>}/>
       </Routes>
       </Suspense>

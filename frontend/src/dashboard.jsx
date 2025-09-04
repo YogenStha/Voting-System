@@ -35,7 +35,7 @@ const ElectionVotingApp = () => {
   
   let userStr = sessionStorage.getItem('user');
   const user = userStr ? JSON.parse(userStr) : null;
-
+  
   const voterId = user.id;
   
   useEffect(() => {
@@ -151,7 +151,7 @@ const ElectionVotingApp = () => {
         });
 
         const responseText = await response.text();
-        console.log('Raw response from EA:', responseText);
+        
 
         if (response.ok) {
           const data = JSON.parse(responseText);
@@ -240,7 +240,6 @@ const ElectionVotingApp = () => {
   // Fetch user's vote history from backend (better approach)
   const fetchUserVoteHistory = async () => {
     try {
-      console.log("Token being sent:", localStorage.getItem("access_token"));
 
       const response = await fetch(`http://localhost:8000/api/user/vote-history/`, {
         method: 'GET',
@@ -620,10 +619,7 @@ const ElectionVotingApp = () => {
               <Vote className="h-8 w-8 text-indigo-600" />
               <h1 className="text-2xl font-bold text-gray-800">Election Portal</h1>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Users className="h-4 w-4" />
-              <span>{candidates.length} Candidates</span>
-            </div>
+            
             {/* Profile Button */}
             <button
               onClick={() => setShowProfile(true)}

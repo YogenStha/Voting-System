@@ -11,6 +11,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from utils.send_mail import send_Voter_ID_mail, send_otp_mail
 from utils.RSA_key import rsa_keys
+import datetime
 import hashlib
 import base64
 from django.utils import timezone
@@ -122,18 +123,21 @@ class UserTokenSerializer(serializers.Serializer):
         password = data.get('password')
         
         try:
-            user = User.objects.only("username").get(voter_id=voter_id)  
+            user = User.objects.select_related().only("username", "password", "voter_id", "email",).get(voter_id=voter_id)  
         except User.DoesNotExist:
-            raise serializers.ValidationError("Invalid voter ID")
+            print("User does not exist.")
+            raise serializers.ValidationError("User does not exist.")
         
-        user = authenticate(username=user.username, voter_id=voter_id, password=password)
-        if user is None:
+        
+        if not user.check_password(password):
+            print("Password incorrect.")
             raise serializers.ValidationError("Invalid credentials")
         
-        otp = ''.join(str(secrets.randbelow(10)) for _ in range(6))
+        # otp = ''.join(str(secrets.randbelow(10)) for _ in range(6))
+        otp = f"{secrets.randbelow(1000000):06d}"  # 6-digit OTP
         if request:
             from django.core.cache import cache
-            cache.set(f"otp", otp, timeout=300)  # 5 minutes
+            cache.set("otp", otp, timeout=300)  # 5 minutes
             
             try:
                 send_otp_mail(user.email, otp)
@@ -144,24 +148,6 @@ class UserTokenSerializer(serializers.Serializer):
         self.user = user
         
         return data
-
-class VerifyOTPSerializer(serializers.Serializer):
-    enteredOTP = serializers.CharField()
-    actualOTP = serializers.CharField()
-    voter_id = serializers.CharField()
-    
-    def validate(self, attrs):
-        enteredOTP = attrs.get('enteredOTP')
-        actualOTP = attrs.get('actualOTP')
-        voter_id = attrs.get('voter_id')
-        
-        if enteredOTP != actualOTP:
-            return serializers.ValidationError("invalid OTP.")
-        
-        user = User.objects.get(voter_id=voter_id)
-        attrs['user'] = user
-        return attrs
-
 
 class CandidateRegisterSerializer(serializers.ModelSerializer):
     

@@ -1,7 +1,7 @@
 import React from 'react'; 
 import {  FaVoteYea, FaPollH, FaLock } from "react-icons/fa";
 import { useNavigate } from 'react-router-dom';
-import chunabe from "./assets/chunabe.png";
+import chunabe from "./assets/logochunabE.png";
 import { HelpCircle,ShieldCheck, Users, TrendingUp, Settings, BarChart, Smartphone, Lock, Mail } from "lucide-react";
 import FAQSection from "./Faq.jsx";
 function Home() {
@@ -37,74 +37,70 @@ function Home() {
 </section>
 
         {/* Key Features Section */}
-      <section id="features" className="py-16 md:py-24 bg-black rounded-2xl shadow-inner">
-  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12">
-      Powerful Features for Seamless Elections
-    </h2>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <ShieldCheck className="w-8 h-8 text-green-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">End-to-End Encryption</h3>
-          <p className="text-indigo-100">
-            Your election data and voter anonymity are protected with state-of-the-art encryption protocols.
-          </p>
+      <section id="features" className="py-12 md:py-16 bg-gray-100">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-10">
+          Features That Make Voting Fun & Easy
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            {
+              icon: <ShieldCheck className="w-10 h-10 text-blue-400" />,
+              title: 'End-to-End Encryption',
+              desc: 'Your votes are safe with super-strong encryption, keeping everything private!',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-pink-200',
+            },
+            {
+              icon: <Lock className="w-10 h-10 text-blue-400" />,
+              title: 'Audit Trails',
+              desc: 'Every step is tracked clearly, so you can trust the process is fair.',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-green-200',
+            },
+            {
+              icon: <Smartphone className="w-10 h-10 text-blue-400" />,
+              title: 'Multi-Device Support',
+              desc: 'Vote from your phone, tablet, or computer—anytime, anywhere!',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-blue-200',
+            },
+            {
+              icon: <Settings className="w-10 h-10 text-blue-400" />,
+              title: 'Customizable Ballots',
+              desc: 'Create ballots that fit your election, from simple to super unique.',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-purple-200',
+            },
+            {
+              icon: <TrendingUp className="w-10 h-10 text-blue-400" />,
+              title: 'Real-Time Results',
+              desc: 'Watch votes roll in instantly with live updates—exciting!',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-yellow-200',
+            },
+            {
+              icon: <Users className="w-10 h-10 text-blue-400" />,
+              title: 'Voter Authentication',
+              desc: 'Only the right people vote, with easy and secure verification.',
+              bg: 'bg-blue-100',
+              hoverBg: 'hover:bg-teal-200',
+            },
+          ].map((feature, index) => (
+            <div
+              key={index}
+              className={`${feature.bg} ${feature.hoverBg} p-6 rounded-2xl transition-transform duration-300 hover:scale-105 flex items-start space-x-4`}
+            >
+              {feature.icon}
+              <div>
+                <h3 className="text-lg font-medium text-gray-800 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
-
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <Lock className="w-8 h-8 text-yellow-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Robust Audit Trails</h3>
-          <p className="text-indigo-100">
-            Maintain complete transparency with verifiable logs of every action, ensuring election integrity.
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <Smartphone className="w-8 h-8 text-pink-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Multi-Device Compatibility</h3>
-          <p className="text-indigo-100">
-            Voters can cast their ballots securely from any smartphone, tablet, or computer.
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <Settings className="w-8 h-8 text-orange-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Customizable Ballots</h3>
-          <p className="text-indigo-100">
-            Design ballots that perfectly match your election's requirements, from simple to complex.
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <TrendingUp className="w-8 h-8 text-red-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Real-Time Results</h3>
-          <p className="text-indigo-100">
-            Monitor election progress and view results instantly as votes are cast and verified.
-          </p>
-        </div>
-      </div>
-
-      <div className="bg-indigo-600 p-6 rounded-xl shadow-md hover:shadow-lg transition-shadow flex items-start space-x-4">
-        <Users className="w-8 h-8 text-teal-300 flex-shrink-0 mt-1" />
-        <div>
-          <h3 className="text-xl font-semibold text-white mb-2">Flexible Voter Authentication</h3>
-          <p className="text-indigo-100">
-            Choose from various authentication methods to ensure only eligible voters participate.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
       <section id="services" className="flex items-center justify-center bg-white text-black px-4 py-16 md:py-24 rounded-2xl">
   <div className="w-full max-w-6xl">
@@ -147,63 +143,60 @@ function Home() {
     
       
       {/* Benefits for Different Users Section */}
-      <section className="py-16 md:py-24 bg-black rounded-2xl shadow-inner">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-12">
-            Benefits for Everyone Involved
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* For Organizers */}
-            <div className="bg-indigo-600 p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-              <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
-                <Users className="w-8 h-8 mr-3 text-green-300" /> For Organizers
-              </h3>
-              <ul className="list-disc list-inside text-indigo-100 space-y-2">
-                <li>Significantly reduce election costs and logistics.</li>
-                <li>Streamline election setup and management.</li>
-                <li>Access real-time results and detailed analytics.</li>
-                <li>Ensure compliance and maintain audit trails.</li>
-                <li>Expand reach and boost voter participation effortlessly.</li>
-              </ul>
-            </div>
+      <section className="py-12 md:py-16 bg-gray-100">
+  <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 className="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-10 text-bold">
+      Benefits for Everyone
+    </h2>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* For Organizers */}
+      <div className="bg-blue-100 hover:bg-pink-200 p-6 rounded-2xl transition-transform duration-300 hover:scale-105">
+        <h3 className="text-lg font-medium text-gray-800 mb-3 flex items-center">
+          <Users className="w-8 h-8 mr-3 text-blue-400" /> For Organizers
+        </h3>
+        <ul className="list-disc list-inside text-gray-600 text-sm space-y-2">
+          <li>Save money and simplify election logistics.</li>
+          <li>Make setup and management super easy.</li>
+          <li>Get real-time results and cool analytics.</li>
+          <li>Stay compliant with clear audit trails.</li>
+          <li>Reach more voters and boost turnout.</li>
+        </ul>
+      </div>
 
-            {/* For Voters */}
-            <div className="bg-indigo-600 p-8 rounded-xl shadow-md hover:shadow-lg transition-shadow duration-300">
-              <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
-                <Smartphone className="w-8 h-8 mr-3 text-pink-300" /> For Voters
-              </h3>
-              <ul className="list-disc list-inside text-indigo-100 space-y-2">
-                <li>Vote conveniently from anywhere, anytime.</li>
-                <li>Experience a simple, intuitive, and accessible voting process.</li>
-                <li>Trust in the security and anonymity of their ballot.</li>
-                <li>Participate confidently knowing their vote counts.</li>
-                <li>Reduce travel and time commitment for voting.</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* For Voters */}
+      <div className="bg-blue-100 hover:bg-green-200 p-6 rounded-2xl transition-transform duration-300 hover:scale-105">
+        <h3 className="text-lg font-medium text-gray-800 mb-3 flex items-center">
+          <Smartphone className="w-8 h-8 mr-3 text-blue-400" /> For Voters
+        </h3>
+        <ul className="list-disc list-inside text-gray-600 text-sm space-y-2">
+          <li>Vote from anywhere, anytime—easy peasy!</li>
+          <li>Enjoy a simple and friendly voting process.</li>
+          <li>Trust your vote is safe and anonymous.</li>
+          <li>Feel confident your vote matters.</li>
+          <li>Skip travel and save time.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
       {/* FAQ Section */}
       <FAQSection/>
 
-      <footer className="bg-black text-white py-10">
-  <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
-    
+      <footer id="contact" className="bg-gray-900 text-white py-6">
+  <div className="max-w-5xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
     {/* Site Description */}
     <section aria-labelledby="footer-branding">
-      <h2 id="footer-branding" className="text-xl font-bold mb-4">Online Voting System</h2>
-      <p className="text-sm text-gray-400">
-        A secure, transparent, and efficient digital voting platform for modern organizations.
-      </p>
+      <h2 id="footer-branding" className="text-lg font-semibold mb-2">Voting Platform</h2>
+      <p className="text-xs text-gray-400">Secure and transparent digital voting.</p>
     </section>
 
     {/* Navigation Links */}
     <nav aria-labelledby="footer-navigation">
-      <h2 id="footer-navigation" className="text-lg font-semibold mb-4">Quick Links</h2>
-      <ul className="space-y-2 text-sm text-gray-300">
-        {["Home", "About", "FAQ", "Login"].map((link) => (
+      <h2 id="footer-navigation" className="text-base font-medium mb-2">Links</h2>
+      <ul className="space-y-1 text-xs text-gray-300">
+        {["Home", "About", "FAQ"].map((link) => (
           <li key={link}>
-            <a href={`/${link.toLowerCase()}`} className="hover:text-blue-500 transition-colors">
+            <a href="/" className="hover:text-blue-400 transition-colors">
               {link}
             </a>
           </li>
@@ -213,30 +206,28 @@ function Home() {
 
     {/* Contact Info */}
     <section aria-labelledby="footer-contact">
-      <h2 id="footer-contact" className="text-lg font-semibold mb-4">Contact</h2>
-      <address className="not-italic text-sm text-gray-300 space-y-2">
+      <h2 id="footer-contact" className="text-base font-medium mb-2">Contact</h2>
+      <address className="not-italic text-xs text-gray-300 space-y-1">
         <div>
-          Email:{" "}
-          <a href="mailto:support@vote.com" className="hover:text-blue-500 transition-colors">
+          <a href="mailto:support@vote.com" className="hover:text-blue-400 transition-colors">
             support@vote.com
           </a>
         </div>
-        <div>Phone: +977-9800000000</div>
-        <div>Address: Mechi Multiple Campus, Birtamode</div>
+        <div>+977-9800000000</div>
       </address>
     </section>
 
     {/* Social Media */}
     <section aria-labelledby="footer-social">
-      <h2 id="footer-social" className="text-lg font-semibold mb-4">Follow Us</h2>
-      <ul className="flex space-x-4 text-gray-300">
-        {["Facebook", "Twitter", "LinkedIn"].map((platform) => (
+      <h2 id="footer-social" className="text-base font-medium mb-2">Social</h2>
+      <ul className="flex space-x-3 text-xs text-gray-300">
+        {["Facebook", "Twitter"].map((platform) => (
           <li key={platform}>
             <a
               href={`https://www.${platform.toLowerCase()}.com`}
               target="_blank"
               rel="noopener noreferrer"
-              className="hover:text-blue-500 transition-colors"
+              className="hover:text-blue-400 transition-colors"
             >
               {platform}
             </a>
@@ -247,8 +238,8 @@ function Home() {
   </div>
 
   {/* Copyright */}
-  <div className="text-center text-sm text-gray-500 mt-10">
-    &copy; 2025 Online Voting System. All rights reserved.
+  <div className="text-center text-xs text-gray-500 mt-6">
+    &copy; 2025 Voting Platform
   </div>
 </footer>
     </>

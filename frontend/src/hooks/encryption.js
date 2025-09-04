@@ -1,10 +1,6 @@
 // Client-Side Cryptographic Operations for Voting System
-// Assumes: All RSA keys (user + election) are generated and managed by backend
-// This code handles: Hybrid encryption + Digital signatures using provided keys
 
-// =============================================================================
-// CORE CRYPTOGRAPHIC OPERATIONS
-// =============================================================================
+// This code handles: Hybrid encryption + Digital signatures using provided keys
 
 /**
  * Sign a message using voter's private key (from backend)
@@ -27,7 +23,7 @@ export const getPrivateKey = async (voterId) => {
   try {
     // Load your PEM string from localStorage or your backend
     const pem = await loadPrivateKey(voterId);
-    console.log("Private key (during load): ", pem);
+    
     if (!pem) throw new Error("Private key not found in storage");
 
     // Remove header/footer and line breaks
@@ -64,13 +60,13 @@ export const getPrivateKey = async (voterId) => {
 export const signMessage = async (message, voterId) => {
   try {
     const privateKey = await getPrivateKey(voterId); // Your existing backend function
-    console.log("Private key (during signing): ", privateKey);
+    
     if (!privateKey) throw new Error("Private key not found");
     
     const encoder = new TextEncoder();
     const data = encoder.encode(JSON.stringify(message));
     
-    console.log("data before signing: (json stringify)", data);
+    
     // RSASSA-PSS with explicit salt length
     const signature = await crypto.subtle.sign(
       { 
@@ -87,57 +83,6 @@ export const signMessage = async (message, voterId) => {
   }
 };
 
-/**
- * Verify signature using public key in PEM format
- */
-// export const verifySignature = async (message_b64, signature_b64, publicKeyPem) => {
-//   try {
-//     if (!message_b64 || !signature_b64 || !publicKeyPem) {
-//       return false;
-//     }
-
-//     const message = base64ToBytes(message_b64);
-//     const signature = base64ToBytes(signature_b64);
-
-//     console.log("base64 decoded S: ", message);
-//     console.log("base64 decoded signature: ", signature);
-//     // Parse PEM format
-//     const pemHeader = "-----BEGIN PUBLIC KEY-----";
-//     const pemFooter = "-----END PUBLIC KEY-----";
-//     const pemContents = publicKeyPem
-//       .replace(pemHeader, "")
-//       .replace(pemFooter, "")
-//       .replace(/\s/g, "");
-//     console.log("pemContents: ", pemContents);
-//     const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-//     console.log("keyData: ", keyData);
-    
-//     // Import public key with PKCS#1 v1.5
-//     const publicKey = await crypto.subtle.importKey(
-//       "spki",
-//       keyData,
-//       {
-//         name: "RSASSA-PKCS1-v1_5",  // Changed from RSASSA-PSS
-//         hash: "SHA-256"
-//       },
-//       false,
-//       ["verify"]
-//     );
-
-//     console.log("Imported public key(remove header footer): ", publicKey);
-
-//     // Verify with PKCS#1 v1.5 (matches  backend)
-//     return await crypto.subtle.verify(
-//       "RSASSA-PKCS1-v1_5",  // Changed from PSS configuration
-//       publicKey,
-//       signature,
-//       message
-//     );
-//   } catch (error) {
-//     console.error("Signature verification error:", error);
-//     return false;
-//   }
-// };
 
 export const verifySignature = async (message_b64, signature_b64, publicKeyPem) => {
   try {
@@ -168,11 +113,9 @@ export const verifySignature = async (message_b64, signature_b64, publicKeyPem) 
       .replace(pemFooter, "")
       .replace(/\s/g, "");
     
-    console.log('PEM contents length:', pemContents.length);
-    
+  
     const keyData = Uint8Array.from(atob(pemContents), c => c.charCodeAt(0));
-    console.log('Key data length:', keyData.length);
-
+  
     // Import EA public key
     console.log('Importing public key...');
     const publicKey = await crypto.subtle.importKey(
@@ -288,9 +231,9 @@ export const encryptWithRSA = async (publicKeyPem, data) => {
   }
 };
 
-/**
- * SHA-256 hash function
- */
+
+ // SHA-256 hash function
+
 export const sha256 = async (data) => {
   try {
     const encoder = new TextEncoder();
@@ -302,23 +245,23 @@ export const sha256 = async (data) => {
   }
 };
 
-/**
- * Generate secure random AES key (256-bit)
- */
+
+ // Generate secure random AES key (256-bit)
+ 
 export const generateAESKey = () => {
   return crypto.getRandomValues(new Uint8Array(32));
 };
 
-/**
- * Base64 encoding
- */
+
+  //Base64 encoding
+ 
 export const base64Encode = (uint8Array) => {
   return btoa(String.fromCharCode(...uint8Array));
 };
 
-/**
- * Base64 decoding
- */
+
+ // Base64 decoding
+
 export const base64Decode = (base64String) => {
   return Uint8Array.from(atob(base64String), c => c.charCodeAt(0));
 };

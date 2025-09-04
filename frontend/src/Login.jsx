@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { storePrivateKey } from './hooks/secureDB';
 import Loader from "./Loader";
@@ -8,6 +8,22 @@ const VoterLogin = () => {
   const [voterId, setVoterId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false); // <-- lowercase, start false
+
+  // Preload OTP page when login component mounts
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = '/OTP';
+    document.head.appendChild(link);
+    
+    // Cleanup function
+    return () => {
+      const existingLink = document.querySelector('link[href="/OTP"]');
+      if (existingLink) {
+        document.head.removeChild(existingLink);
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -87,6 +103,12 @@ const VoterLogin = () => {
           >
             Login
           </button>
+
+          <div className="text-sm text-center mt-4">
+            <a href="/Registration_Options" className="text-blue-600 hover:underline">
+              Don't have account? register here
+            </a>
+          </div>
 
           <div className="text-sm text-center mt-4">
             <a href="#" className="text-blue-600 hover:underline">
